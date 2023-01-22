@@ -1,0 +1,31 @@
+AddLink {
+    layout: horizontal;
+    background: $boost;
+    height: 5;
+    margin: 1;
+    min-width: 50;
+    padding: 1;
+}
+
+Label {
+    background: $boost;
+    height: 5;
+    margin: 1;
+    min-width: 5;
+    padding: 1;
+}
+
+Content {
+    background: $boost;
+    height: 5;
+    margin: 1;
+    min-width: 5;
+    padding: 1;
+    dock: bottom;
+}
+
+ListView {
+    width: 30;
+    height: auto;
+    margin: 2 2;
+}
