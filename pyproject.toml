@@ -9,6 +9,7 @@ readme = "README.md"
 python = "^3.11"
 textual-dev = "^0.0.2"
 rich = "^13.1.0"
+requests = "^2.28.2"
 
 
 [build-system]

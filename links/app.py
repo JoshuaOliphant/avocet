@@ -1,56 +1,45 @@
 from textual.app import App, ComposeResult
-from textual.containers import Content
 from textual.widgets import Input, Static, Header, Footer, Button, Label, ListItem, ListView
 from textual import events
-from textual.containers import Container, Vertical
+from textual.containers import Container 
 
 from rich.markdown import Markdown
 
-from contextlib import closing
+from raindrop import Raindrop
 
-import sqlite3
 
-connection = sqlite3.connect("links.db")
-cursor = connection.cursor()
-# cursor.execute("CREATE TABLE links (link TEXT)")
-
-class AddLink(Static):
+class URLInput(Static):
     def compose(self) -> ComposeResult:
-        yield Label("URL", id="url")
-        yield Input(placeholder="Enter a link", id="input")
+        yield Input(placeholder="https://", id="input")
 
-class ExistingLinks(Static):
+class Collection(Static):
+
     def compose(self) -> ComposeResult:
-        links = cursor.execute("SELECT * FROM links").fetchall()
-        # list_items = tuple([ListItem(Label(str(link[0] for link in links)))])
-        # list_items = [ListItem(Label(str(link[0][0]))) for link in links]
-        # yield ListView(tuple(ListItem(Label(str(links[0][0])))))
-        list_items = [ListItem(Label(link[0])) for link in links]
-        yield ListView(
-            *list_items
-        )
+        raindrop = Raindrop()
+        items = raindrop.getCollections()
+        items = [ListItem(Label('{} {}'.format(item['title'], item['count']), id="title")) for item in items]
+        yield ListView(*items)
 
 class Info(App):
     CSS_PATH = "links.css"
-    BINDINGS = [("a", "add_link", "add link")]
+    BINDINGS = [
+        ("a", "add_link", "add link"),
+        ("tab", "toggle_class('#Collection', '-active')", "toggle sidebar")
+    ]
     
     def compose(self) -> ComposeResult:
         yield Header()
         yield Footer()
         yield Container(
-            AddLink(),
-            ExistingLinks()
+            URLInput(),
+            Collection(id="Collection") 
         )
         
     def on_mount(self) -> None:
         self.query_one(Input).focus()
         
-    def on_input_submitted(self, event: Input.Submitted) -> None:
-        link = self.query_one(Input).value
-        cursor.execute(f"INSERT INTO links VALUES ('{link}')")
-        connection.commit()
-        links = cursor.execute("SELECT * FROM links").fetchall()
-        self.query_one("#link_entered", Static).update(Markdown(str(links)))
+    #def on_input_submitted(self, event: Input.Submitted) -> None:
+        #self.query_one("#link_entered", Static).update(Markdown(str(links)))
 
 if __name__ == "__main__":
     app = Info()
