@@ -1,3 +1,4 @@
+from typing import Dict
 import requests
 import os
 
@@ -7,15 +8,26 @@ class Raindrop:
        token = os.environ["RAINDROP"]
        self.headers = {"Authorization": f"Bearer {token}"}
        
-    def getCollections(self):
+    def getCollections(self) -> Dict:
         r = requests.get("https://api.raindrop.io/rest/v1/collections", headers = self.headers)
-        return r.json()['items']
+        collections = dict()
+        for item in r.json()['items']:
+            collections[item['title']] = {'id': item['_id'], 'count': item['count']}
+        return collections
+
+    def getRaindropsBy(self, collection_id):
+        r = requests.get(f"https://api.raindrop.io/rest/v1/raindrops/{collection_id}", headers = self.headers)
+        raindrops = []
+        for raindrop in r.json()['items']:
+            raindrops.append({
+                'id': raindrop['_id'],
+                'excerpt': raindrop['excerpt'],
+                'tags': raindrop['tags'],
+                'title': raindrop['title']
+            })
+        return raindrops
 
 if __name__ == "__main__":
     raindrop = Raindrop()
-    items = raindrop.getCollections()
-    d = []
-    for item in items:
-        entry = {'title': item['title'], 'count': item['count']}
-        d.append(entry)
-    print(d)
+    collections = raindrop.getRaindropsBy('30350988')
+    print(collections)
