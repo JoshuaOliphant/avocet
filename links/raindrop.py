@@ -13,6 +13,7 @@ class Raindrop:
         collections = dict()
         for item in r.json()['items']:
             collections[item['title']] = {'id': item['_id'], 'count': item['count']}
+        r.close()
         return collections
 
     def getRaindropsBy(self, collection_id):
@@ -25,6 +26,7 @@ class Raindrop:
                 'tags': raindrop['tags'],
                 'title': raindrop['title']
             })
+        r.close()
         return raindrops
 
 if __name__ == "__main__":
