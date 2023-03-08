@@ -50,7 +50,7 @@ class Previews(ListView):
         # self.list_items = [ListItem(Label('{} {}'.format(item['title'], item['excerpt']), id="raindrop")) for item in self.items]
 
 class Info(App):
-    CSS_PATH = "links.css"
+    CSS_PATH = "avocet.css"
     
     def compose(self) -> ComposeResult:
         yield Header()
