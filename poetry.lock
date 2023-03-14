@@ -893,14 +893,14 @@ files = [
 
 [[package]]
 name = "textual"
-version = "0.13.0"
+version = "0.15.1"
 description = "Modern Text User Interface framework"
 category = "main"
 optional = false
 python-versions = ">=3.7,<4.0"
 files = [
-    {file = "textual-0.13.0-py3-none-any.whl", hash = "sha256:1c7fd1f08b8080d85119bdb72943086444256f7ea3275609b21d654f5643b05d"},
-    {file = "textual-0.13.0.tar.gz", hash = "sha256:f8e82432a34b1a239679a54b052437cdcec353ecccecf616f972fae3dd081b25"},
+    {file = "textual-0.15.1-py3-none-any.whl", hash = "sha256:be79dd8d7f3f5b5c40893da4d5d8228e54c5c9f7b844abfb0e8a13ce2b3a7930"},
+    {file = "textual-0.15.1.tar.gz", hash = "sha256:b86d4668a072fc85092f081e157e1e7575b353b2f6b728755752bbbe23123063"},
 ]
 
 [package.dependencies]
@@ -908,7 +908,7 @@ importlib-metadata = ">=4.11.3,<5.0.0"
 markdown-it-py = {version = ">=2.1.0,<3.0.0", extras = ["linkify", "plugins"]}
 mkdocs-exclude = ">=1.0.2,<2.0.0"
 rich = ">12.6.0"
-typing-extensions = ">=4.0.0,<5.0.0"
+typing-extensions = ">=4.4.0,<5.0.0"
 
 [package.extras]
 dev = ["aiohttp (>=3.8.1)", "click (>=8.1.2)", "msgpack (>=1.0.3)"]
