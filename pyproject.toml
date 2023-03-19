@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "info"
+name = "avocet"
 version = "0.1.0"
 description = ""
 authors = ["Joshua Oliphant <joshua.oliphant@hey.com>"]
@@ -10,6 +10,7 @@ python = "^3.11"
 textual-dev = "^0.0.2"
 rich = "^13.1.0"
 requests = "^2.28.2"
+textual = "^0.15.1"
 
 
 [build-system]
