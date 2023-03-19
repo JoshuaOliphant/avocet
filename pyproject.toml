@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "info"
+name = "avocet"
 version = "0.1.0"
 description = ""
 authors = ["Joshua Oliphant <joshua.oliphant@hey.com>"]
