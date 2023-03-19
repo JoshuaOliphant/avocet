@@ -7,7 +7,7 @@ class Raindrop:
     def __init__(self) -> None:
        token = os.environ["RAINDROP"]
        self.headers = {"Authorization": f"Bearer {token}"}
-       
+
     def getCollections(self) -> Dict:
         r = requests.get("https://api.raindrop.io/rest/v1/collections", headers = self.headers)
         collections = dict()
@@ -18,14 +18,14 @@ class Raindrop:
 
     def getRaindropsBy(self, collection_id):
         r = requests.get(f"https://api.raindrop.io/rest/v1/raindrops/{collection_id}", headers = self.headers)
-        raindrops = []
+        raindrops = dict()
         for raindrop in r.json()['items']:
-            raindrops.append({
-                'id': raindrop['_id'],
+            raindrops[raindrop['_id']] = {
                 'excerpt': raindrop['excerpt'],
                 'tags': raindrop['tags'],
-                'title': raindrop['title']
-            })
+                'title': raindrop['title'],
+                'link': raindrop['link']
+            }
         r.close()
         return raindrops
 
