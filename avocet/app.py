@@ -36,26 +36,25 @@ class Avocet(App):
     def on_mount(self) -> None:
         self.query_one(Input).focus()
 
-    def handle_raindrop_collection_selected(self, event: ListView.Selected):
-        event_item = event.item
+    async def handle_raindrop_collection_selected(self, event: ListView.Selected):
         raindrop_collection = self.collection_map[event.item.id]
         id = raindrop_collection["id"]
+        new_raindrops_collection = await self.raindrop.getRaindropsByAsync(str(id))
         raindrop_previews = self.query_one("#raindrop_previews")
         raindrop_previews.clear()
-        new_raindrops_collection = self.raindrop.getRaindropsBy(str(id))
         new_raindrops = raindrops_to_list_items(new_raindrops_collection)
         for raindrop in new_raindrops:
             raindrop_previews.append(raindrop)
 
-    def handle_raindrop_previews_selected(self, event: ListView.Selected):
+    async def handle_raindrop_previews_selected(self, event: ListView.Selected):
         link = self.raindrop_map[event.item.id]['link']
         log(f"link: {link}")
 
-    def on_list_view_selected(self, event: ListView.Selected):
-        if event.sender.id == "raindrop_collections":
+    async def on_list_view_selected(self, event: ListView.Selected):
+        if event._sender.id == "raindrop_collections":
             self.handle_raindrop_collection_selected(event)
-        if event.sender.id == "raindrop_previews":
-            self.handle_raindrop_previews_selected(event)
+        if event._sender.id == "raindrop_previews":
+            await self.handle_raindrop_previews_selected(event)
 
 if __name__ == "__main__":
     app = Avocet()
