@@ -2,14 +2,15 @@ from textual.app import App, ComposeResult
 from textual.widgets import Header, Static, Input, ListView, ListItem, Label, Footer
 from textual.containers import Container, Horizontal, Vertical
 from textual import log
+import webbrowser
 
 from raindrop import Raindrop
 
 def collection_to_list_items(collections: map):
-    return [ListItem(Label('{} {}'.format(key, value['count'])), id=key) for key, value in collections.items()]
+    return [ListItem(Label('{} {}'.format(key, value['count'])), name="collection_list", id=key) for key, value in collections.items()]
 
 def raindrops_to_list_items(raindrops: map):
-    return [ListItem(Label('{} | {}'.format(value['title'], value['excerpt'])), id=f"raindrop-{key}") for key, value in raindrops.items()]
+    return [ListItem(Label('{} | {}'.format(value['title'], value['excerpt'])), name="raindrop_list", id=f"raindrop-{key}") for key, value in raindrops.items()]
 
 class URLInput(Static):
     def compose(self) -> ComposeResult:
@@ -36,25 +37,31 @@ class Avocet(App):
     def on_mount(self) -> None:
         self.query_one(Input).focus()
 
-    async def handle_raindrop_collection_selected(self, event: ListView.Selected):
+    def handle_raindrop_collection_selected(self, event: ListView.Selected):
         raindrop_collection = self.collection_map[event.item.id]
         id = raindrop_collection["id"]
-        new_raindrops_collection = await self.raindrop.getRaindropsByAsync(str(id))
         raindrop_previews = self.query_one("#raindrop_previews")
         raindrop_previews.clear()
+        new_raindrops_collection = self.raindrop.getRaindropsBy(str(id))
         new_raindrops = raindrops_to_list_items(new_raindrops_collection)
         for raindrop in new_raindrops:
             raindrop_previews.append(raindrop)
 
-    async def handle_raindrop_previews_selected(self, event: ListView.Selected):
-        link = self.raindrop_map[event.item.id]['link']
+    def handle_raindrop_previews_selected(self, event: ListView.Selected):
+        item = event.item
+        raindrop_id = event.item.id.split("raindrop-", 1)[1]
+        m = self.raindrop_map
+        raindrop_map = self.raindrop.getRaindropBy(raindrop_id)
+        link = raindrop_map[int(raindrop_id)]['link']
         log(f"link: {link}")
+        webbrowser.open(link)
 
-    async def on_list_view_selected(self, event: ListView.Selected):
-        if event._sender.id == "raindrop_collections":
+    def on_list_view_selected(self, event: ListView.Selected):
+        e = event.item.name
+        if event.item.name == "collection_list":
             self.handle_raindrop_collection_selected(event)
-        if event._sender.id == "raindrop_previews":
-            await self.handle_raindrop_previews_selected(event)
+        if event.item.name == "raindrop_list":
+            self.handle_raindrop_previews_selected(event)
 
 if __name__ == "__main__":
     app = Avocet()

@@ -12,11 +12,16 @@ class Raindrop:
         r = httpx.get("https://api.raindrop.io/rest/v1/collections", headers = self.headers)
         collections = dict()
         for item in r.json()['items']:
-            collections[item['title']] = {'id': item['_id'], 'count': item['count']}
+            collections[
+                item['title']] = {
+                'id': item['_id'], 
+                'count': item['count'],
+                'type': 'collections'
+            }
         r.close()
         return collections
-
-    def getRaindropsBy(self, collection_id):
+    
+    def getRaindropsBy(self, collection_id: str) -> Dict:
         r = httpx.get(f"https://api.raindrop.io/rest/v1/raindrops/{collection_id}", headers = self.headers)
         raindrops = dict()
         for raindrop in r.json()['items']:
@@ -24,24 +29,25 @@ class Raindrop:
                 'excerpt': raindrop['excerpt'],
                 'tags': raindrop['tags'],
                 'title': raindrop['title'],
-                'link': raindrop['link']
+                'link': raindrop['link'],
+                'type': 'collection'
             }
         r.close()
         return raindrops
     
-    async def getRaindropsByAsync(self, collection_id):
-        async with httpx.AsyncClient() as client:
-            r = await client.get(f"https://api.raindrop.io/rest/v1/raindrops/{collection_id}", headers = self.headers)
-        raindrops = dict()
-        for raindrop in r.json()['items']:
-            raindrops[raindrop['_id']] = {
-                'excerpt': raindrop['excerpt'],
-                'tags': raindrop['tags'],
-                'title': raindrop['title'],
-                'link': raindrop['link']
-            }
+    def getRaindropBy(self, raindrop_id: str) -> Dict:
+        r = httpx.get(f"https://api.raindrop.io/rest/v1/raindrop/{raindrop_id}", headers = self.headers)
+        item = r.json()['item']
+        raindrop = dict()
+        raindrop[item['_id']] = {
+            'excerpt': item['excerpt'],
+            'tags': item['tags'],
+            'title': item['title'],
+            'link': item['link'],
+            'type': 'raindrop'
+        }
         r.close()
-        return raindrops
+        return raindrop
 
 if __name__ == "__main__":
     raindrop = Raindrop()

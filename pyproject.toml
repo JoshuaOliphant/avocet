@@ -9,7 +9,7 @@ readme = "README.md"
 python = "^3.11"
 textual-dev = "^0.0.2"
 rich = "^13.1.0"
-textual = "^0.15.1"
+textual = "^0.19.0"
 httpx = "^0.23.3"
 
 [build-system]
