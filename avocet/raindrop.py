@@ -48,6 +48,10 @@ class Raindrop:
         }
         r.close()
         return raindrop
+    
+    def postRaindrop(self, raindrop: Dict) -> None:
+        r = httpx.post("https://api.raindrop.io/rest/v1/raindrop", headers = self.headers, json=raindrop)
+        r.close()
 
 if __name__ == "__main__":
     raindrop = Raindrop()
