@@ -1,4 +1,12 @@
+import pytest
+import httpx
+
 from avocet.raindrop import Raindrop
+from unittest import mock
+
+@pytest.fixture
+def raindrop():
+    return Raindrop()
 
 RAINDROP_RESPONSE = {
     "result": True,
@@ -51,12 +59,87 @@ RAINDROP_RESPONSE = {
     },
     "author": True
 }
-URL="https://api.raindrop.io/rest/v1/raindrop/518084943"
-def test_passes(httpx_mock):
-    httpx_mock.add_response(url=URL, json=RAINDROP_RESPONSE)
-    rd = Raindrop()
 
-    result = rd.getRaindropBy('518084943')
+URL="https://api.raindrop.io/rest/v1/raindrop/518084943"
+
+def test_getRaindropByCollectionId(httpx_mock, raindrop):
+    httpx_mock.add_response(url=URL, json=RAINDROP_RESPONSE)
+
+    result = raindrop.getRaindropBy('518084943')
 
     assert result.get(518084943)['excerpt'] == 'Build better apps, faster.'
-    assert True
+
+def test_getCollections(raindrop):
+    # Mock the httpx response
+    mock_response = mock.Mock()
+    mock_response.json.return_value = {
+        'items': [
+            {'_id': '1', 'title': 'Collection 1', 'count': 10},
+            {'_id': '2', 'title': 'Collection 2', 'count': 5},
+            {'_id': '3', 'title': 'Collection 3', 'count': 3},
+        ]
+    }
+    mock_get = mock.Mock(return_value=mock_response)
+
+    # Patch the httpx get method with the mock
+    with mock.patch('httpx.get', mock_get):
+        collections = raindrop.getCollections()
+
+        # Assert that the httpx get method was called with the correct arguments
+        mock_get.assert_called_once_with("https://api.raindrop.io/rest/v1/collections", headers=raindrop.headers)
+
+        # Assert that the collections were correctly parsed
+        expected_collections = {
+            'Collection 1': {'id': '1', 'count': 10, 'type': 'collections'},
+            'Collection 2': {'id': '2', 'count': 5, 'type': 'collections'},
+            'Collection 3': {'id': '3', 'count': 3, 'type': 'collections'},
+        }
+        assert collections == expected_collections
+
+def test_getRaindropsBy(raindrop):
+    # Mock the httpx response
+    mock_response = mock.Mock()
+    mock_response.json.return_value = {
+        'items': [
+            {'_id': '1', 'title': 'Raindrop 1', 'excerpt': 'Excerpt 1', 'tags': [], 'link': 'https://example.com'},
+            {'_id': '2', 'title': 'Raindrop 2', 'excerpt': 'Excerpt 2', 'tags': ['tag1', 'tag2'], 'link': 'https://example.com'},
+            {'_id': '3', 'title': 'Raindrop 3', 'excerpt': 'Excerpt 3', 'tags': ['tag3'], 'link': 'https://example.com'},
+        ]
+    }
+    mock_get = mock.Mock(return_value=mock_response)
+
+    # Patch the httpx get method with the mock
+    with mock.patch('httpx.get', mock_get):
+        raindrops = raindrop.getRaindropsBy('123')
+
+        # Assert that the httpx get method was called with the correct arguments
+        mock_get.assert_called_once_with("https://api.raindrop.io/rest/v1/raindrops/123", headers=raindrop.headers)
+
+        # Assert that the raindrops were correctly parsed
+        expected_raindrops = {
+            '1': {'excerpt': 'Excerpt 1', 'tags': [], 'title': 'Raindrop 1', 'link': 'https://example.com', 'type': 'collection'},
+            '2': {'excerpt': 'Excerpt 2', 'tags': ['tag1', 'tag2'], 'title': 'Raindrop 2', 'link': 'https://example.com', 'type': 'collection'},
+            '3': {'excerpt': 'Excerpt 3', 'tags': ['tag3'], 'title': 'Raindrop 3', 'link': 'https://example.com', 'type': 'collection'},
+        }
+        assert raindrops == expected_raindrops
+
+def test_getRaindropByRaindropId(mocker, raindrop):
+    # Define the mock response
+    response = {'item': {'_id': '123', 'excerpt': 'test', 'tags': ['tag1', 'tag2'], 'title': 'test', 'link': 'https://test.com'}}
+
+    # Mock the HTTP request using the response
+    mocker.patch('httpx.get', return_value=mocker.Mock(json=lambda: response))
+
+    # Call the function and check the response
+    result = raindrop.getRaindropBy('123')
+    assert result == {'123': {'excerpt': 'test', 'tags': ['tag1', 'tag2'], 'title': 'test', 'link': 'https://test.com', 'type': 'raindrop'}}
+
+def test_postRaindrop(mocker, raindrop):
+    mock_post = mocker.patch.object(httpx, "post")
+    mock_post.return_value.json.return_value = {"success": True}
+    raindrop.postRaindrop({"title": "test", "url": "http://example.com"})
+    mock_post.assert_called_once_with(
+        "https://api.raindrop.io/rest/v1/raindrop",
+        headers=raindrop.headers,
+        json={"title": "test", "url": "http://example.com"},
+    )
