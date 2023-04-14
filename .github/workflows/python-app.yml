@@ -14,9 +14,9 @@ permissions:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
+    matrix:
+      poetry-version: ["1.4.1"]
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python 3.11
@@ -25,6 +25,8 @@ jobs:
         python-version: "3.11"
     - name: Set up poetry
       uses: abatilo/actions-poetry@v2.1.6
+      with:
+          poetry-version: ${{ matrix.poetry-version }}
     - name: Install dependencies
       run: |
         poetry install
