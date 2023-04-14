@@ -4,4 +4,5 @@ Avocet is a TUI the accesses the [Raindrop API](https://developer.raindrop.io/).
 
 ## Requirements
 - Python 3
-- Poetry
+- [Poetry](https://python-poetry.org/docs/)
+- [Just](https://github.com/casey/just)
