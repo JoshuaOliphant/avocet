@@ -5,13 +5,13 @@ import os
 from avocet.raindrop import Raindrop
 from unittest import mock
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def raindrop():
     return Raindrop()
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def mock_raindrop_env_var():
-    with mock.patch.dict(os.environ, {'RAINDROP': 'RAINDROP_MOCK'}):
+    with mock.patch.dict(os.environ, {"RAINDROP": "RAINDROP_MOCK"}):
         yield
 
 RAINDROP_RESPONSE = {
@@ -75,7 +75,7 @@ def test_getRaindropByCollectionId(httpx_mock, raindrop, mock_raindrop_env_var):
 
     assert result.get(518084943)['excerpt'] == 'Build better apps, faster.'
 
-def test_getCollections(raindrop, mock_raindrop_env_var):
+def test_getCollections():
     # Mock the httpx response
     mock_response = mock.Mock()
     mock_response.json.return_value = {
@@ -102,7 +102,7 @@ def test_getCollections(raindrop, mock_raindrop_env_var):
         }
         assert collections == expected_collections
 
-def test_getRaindropsBy(raindrop, mock_raindrop_env_var):
+def test_getRaindropsBy():
     # Mock the httpx response
     mock_response = mock.Mock()
     mock_response.json.return_value = {
@@ -129,7 +129,7 @@ def test_getRaindropsBy(raindrop, mock_raindrop_env_var):
         }
         assert raindrops == expected_raindrops
 
-def test_getRaindropByRaindropId(mocker, raindrop, mock_raindrop_env_var):
+def test_getRaindropByRaindropId(mocker):
     # Define the mock response
     response = {'item': {'_id': '123', 'excerpt': 'test', 'tags': ['tag1', 'tag2'], 'title': 'test', 'link': 'https://test.com'}}
 
@@ -140,7 +140,7 @@ def test_getRaindropByRaindropId(mocker, raindrop, mock_raindrop_env_var):
     result = raindrop.getRaindropBy('123')
     assert result == {'123': {'excerpt': 'test', 'tags': ['tag1', 'tag2'], 'title': 'test', 'link': 'https://test.com', 'type': 'raindrop'}}
 
-def test_postRaindrop(mocker, raindrop, mock_raindrop_env_var):
+def test_postRaindrop(mocker):
     mock_post = mocker.patch.object(httpx, "post")
     mock_post.return_value.json.return_value = {"success": True}
     raindrop.postRaindrop({"title": "test", "url": "http://example.com"})
