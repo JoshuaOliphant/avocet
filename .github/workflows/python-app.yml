@@ -25,9 +25,21 @@ jobs:
       uses: abatilo/actions-poetry@v2.1.6
       with:
           poetry-version: "1.4.1"
+    - name: Cache Poetry virtualenv
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/pypoetry/virtualenvs
+        key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-poetry-
+    - name: Set Poetry config
+      run: |
+        poetry config virtualenvs.in-project true
+        poetry config settings.virtualenvs.path ~/.cache/pypoetry/virtualenvs
     - name: Install dependencies
       run: |
         poetry install
+        if: steps.cache.outputs.cache-hit != 'true'
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
@@ -35,5 +47,4 @@ jobs:
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
-      run: |
-        pytest
+      run: pytest
