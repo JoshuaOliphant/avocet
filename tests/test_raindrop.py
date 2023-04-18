@@ -74,7 +74,7 @@ def test_getRaindropByCollectionId(httpx_mock, raindrop):
 
     assert result.get(518084943)['excerpt'] == 'Build better apps, faster.'
 
-def test_getCollections(, raindrop):
+def test_getCollections(raindrop):
     # Mock the httpx response
     mock_response = mock.Mock()
     mock_response.json.return_value = {
