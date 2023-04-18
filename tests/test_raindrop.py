@@ -140,7 +140,7 @@ def test_getRaindropByRaindropId(mocker, raindrop):
     result = raindrop.getRaindropBy('123')
     assert result == {'123': {'excerpt': 'test', 'tags': ['tag1', 'tag2'], 'title': 'test', 'link': 'https://test.com', 'type': 'raindrop'}}
 
-def test_postRaindrop(mocker):
+def test_postRaindrop(mocker, raindrop):
     mock_post = mocker.patch.object(httpx, "post")
     mock_post.return_value.json.return_value = {"success": True}
     raindrop.postRaindrop({"title": "test", "url": "http://example.com"})
