@@ -8,6 +8,11 @@ from unittest import mock
 def raindrop():
     return Raindrop()
 
+@pytest.fixture
+def mock_raindrop_env_var():
+    with patch.dict(os.environ, {'RAINDROP': 'RAINDROP_MOCK'}):
+        yield
+
 RAINDROP_RESPONSE = {
     "result": True,
     "item": {
@@ -62,14 +67,14 @@ RAINDROP_RESPONSE = {
 
 URL="https://api.raindrop.io/rest/v1/raindrop/518084943"
 
-def test_getRaindropByCollectionId(httpx_mock, raindrop):
+def test_getRaindropByCollectionId(httpx_mock, raindrop, mock_raindrop_env_var):
     httpx_mock.add_response(url=URL, json=RAINDROP_RESPONSE)
 
     result = raindrop.getRaindropBy('518084943')
 
     assert result.get(518084943)['excerpt'] == 'Build better apps, faster.'
 
-def test_getCollections(raindrop):
+def test_getCollections(raindrop, mock_raindrop_env_var):
     # Mock the httpx response
     mock_response = mock.Mock()
     mock_response.json.return_value = {
@@ -96,7 +101,7 @@ def test_getCollections(raindrop):
         }
         assert collections == expected_collections
 
-def test_getRaindropsBy(raindrop):
+def test_getRaindropsBy(raindrop, mock_raindrop_env_var):
     # Mock the httpx response
     mock_response = mock.Mock()
     mock_response.json.return_value = {
@@ -123,7 +128,7 @@ def test_getRaindropsBy(raindrop):
         }
         assert raindrops == expected_raindrops
 
-def test_getRaindropByRaindropId(mocker, raindrop):
+def test_getRaindropByRaindropId(mocker, raindrop, mock_raindrop_env_var):
     # Define the mock response
     response = {'item': {'_id': '123', 'excerpt': 'test', 'tags': ['tag1', 'tag2'], 'title': 'test', 'link': 'https://test.com'}}
 
@@ -134,7 +139,7 @@ def test_getRaindropByRaindropId(mocker, raindrop):
     result = raindrop.getRaindropBy('123')
     assert result == {'123': {'excerpt': 'test', 'tags': ['tag1', 'tag2'], 'title': 'test', 'link': 'https://test.com', 'type': 'raindrop'}}
 
-def test_postRaindrop(mocker, raindrop):
+def test_postRaindrop(mocker, raindrop, mock_raindrop_env_var):
     mock_post = mocker.patch.object(httpx, "post")
     mock_post.return_value.json.return_value = {"success": True}
     raindrop.postRaindrop({"title": "test", "url": "http://example.com"})
