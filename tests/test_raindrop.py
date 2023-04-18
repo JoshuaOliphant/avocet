@@ -1,5 +1,6 @@
 import pytest
 import httpx
+import os
 
 from avocet.raindrop import Raindrop
 from unittest import mock
@@ -10,7 +11,7 @@ def raindrop():
 
 @pytest.fixture
 def mock_raindrop_env_var():
-    with patch.dict(os.environ, {'RAINDROP': 'RAINDROP_MOCK'}):
+    with mock.patch.dict(os.environ, {'RAINDROP': 'RAINDROP_MOCK'}):
         yield
 
 RAINDROP_RESPONSE = {
