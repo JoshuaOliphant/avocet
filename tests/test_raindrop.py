@@ -5,6 +5,7 @@ import os
 from avocet.raindrop import Raindrop
 from unittest import mock
 
+@pytest.fixture
 def raindrop():
     return Raindrop()
 
