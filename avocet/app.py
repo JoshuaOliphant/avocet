@@ -1,7 +1,6 @@
 from textual.app import App, ComposeResult
-from textual.widgets import Header, Static, Input, ListView, ListItem, Label, Footer
+from textual.widgets import Header, Static, Input, ListView, ListItem, Label, Text
 from textual.containers import Container
-from textual import log
 import webbrowser
 
 from raindrop import Raindrop
@@ -43,14 +42,11 @@ class Avocet(App):
         yield Header()
         with Container():
             yield URLInput(id="url_input")
-            try:
-                self.collection_map = self.raindrop.getCollections()
-                self.raindrop_collections = collection_to_list_items(self.collection_map)
-                yield ListView(*self.raindrop_collections, id="raindrop_collections")
-                self.raindrop_map = self.raindrop.getRaindropsBy("30350988")
-                yield ListView(*raindrops_to_list_items(self.raindrop_map), id="raindrop_previews")
-            except Exception as e:
-                yield Text(f"Error: {e}")
+            self.collection_map = self.raindrop.getCollections()
+            self.raindrop_collections = collection_to_list_items(self.collection_map)
+            yield ListView(*self.raindrop_collections, id="raindrop_collections")
+            self.raindrop_map = self.raindrop.getRaindropsBy("30350988")
+            yield ListView(*raindrops_to_list_items(self.raindrop_map), id="raindrop_previews")
 
     # Set focus to the input field.
     def on_mount(self) -> None:
