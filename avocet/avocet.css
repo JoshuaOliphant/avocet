@@ -1,38 +1,35 @@
-#Collection {
+#raindrop_collections {
+    width: 50%;
     dock: left;
-    height: 100;
-    width: 35;
-    offset-x: -100%;
-    transition: offset 500ms in_out_cubic;
-    border-right: outer #09312e;
 }
 
-#Collection.-active {
-    offset-x: 0;
+#raindrop_previews {
+    width: 50%;
+    dock: right;
 }
 
-URLInput {
-    layout: horizontal;
-    background: $boost;
-    height: 5;
-    margin: 1;
-    min-width: 50;
-    padding: 1;
-}
-
-Content {
-    background: $boost;
-    height: 5;
-    margin: 1;
-    min-width: 5;
-    padding: 1;
-    dock: bottom;
+#url_input {
+    width: 100%;
+    dock: top;
+    margin-bottom: 1;
+    border: dashed #CCCCCC;
 }
 
 ListView {
-    margin: 2 2;
+    margin-top: 4;
+    border: dashed #CCCCCC;
+    
 }
 
 ListItem {
     height: 1;
+}
+
+Container {
+    background: #000000;
+}
+
+Header {
+    background: #000000;
+    color: #FFFFFF;
 }

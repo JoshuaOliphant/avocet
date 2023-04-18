@@ -42,7 +42,7 @@ class Avocet(App):
     def compose(self) -> ComposeResult:
         yield Header()
         with Container():
-            yield URLInput()
+            yield URLInput(id="url_input")
             try:
                 self.collection_map = self.raindrop.getCollections()
                 self.raindrop_collections = collection_to_list_items(self.collection_map)
@@ -51,7 +51,6 @@ class Avocet(App):
                 yield ListView(*raindrops_to_list_items(self.raindrop_map), id="raindrop_previews")
             except Exception as e:
                 yield Text(f"Error: {e}")
-        yield Footer()
 
     # Set focus to the input field.
     def on_mount(self) -> None:
