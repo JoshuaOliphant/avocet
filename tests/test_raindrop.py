@@ -5,7 +5,6 @@ import os
 from avocet.raindrop import Raindrop
 from unittest import mock
 
-@pytest.fixture(autouse=True)
 def raindrop():
     return Raindrop()
 
@@ -68,14 +67,14 @@ RAINDROP_RESPONSE = {
 
 URL="https://api.raindrop.io/rest/v1/raindrop/518084943"
 
-def test_getRaindropByCollectionId(httpx_mock, raindrop, mock_raindrop_env_var):
+def test_getRaindropByCollectionId(httpx_mock, raindrop):
     httpx_mock.add_response(url=URL, json=RAINDROP_RESPONSE)
 
     result = raindrop.getRaindropBy('518084943')
 
     assert result.get(518084943)['excerpt'] == 'Build better apps, faster.'
 
-def test_getCollections():
+def test_getCollections(, raindrop):
     # Mock the httpx response
     mock_response = mock.Mock()
     mock_response.json.return_value = {
@@ -102,7 +101,7 @@ def test_getCollections():
         }
         assert collections == expected_collections
 
-def test_getRaindropsBy():
+def test_getRaindropsBy(raindrop):
     # Mock the httpx response
     mock_response = mock.Mock()
     mock_response.json.return_value = {
@@ -129,7 +128,7 @@ def test_getRaindropsBy():
         }
         assert raindrops == expected_raindrops
 
-def test_getRaindropByRaindropId(mocker):
+def test_getRaindropByRaindropId(mocker, raindrop):
     # Define the mock response
     response = {'item': {'_id': '123', 'excerpt': 'test', 'tags': ['tag1', 'tag2'], 'title': 'test', 'link': 'https://test.com'}}
 
