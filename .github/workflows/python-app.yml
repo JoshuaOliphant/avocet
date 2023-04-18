@@ -27,7 +27,6 @@ jobs:
           poetry-version: "1.4.1"
     - name: Install dependencies
       run: |
-        poetry shell
         poetry install
     - name: Lint with flake8
       run: |
