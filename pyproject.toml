@@ -1,9 +1,15 @@
 [tool.poetry]
 name = "avocet"
 version = "0.1.0"
-description = ""
+description = "A TUI for Raindrop.io bookmarks written in Python"
 authors = ["Joshua Oliphant <joshua.oliphant@hey.com>"]
 readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
 
 [tool.poetry.dependencies]
 python = "^3.11"
