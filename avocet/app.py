@@ -1,5 +1,5 @@
 from textual.app import App, ComposeResult
-from textual.widgets import Header, Static, Input, ListView, ListItem, Label, Text
+from textual.widgets import Header, Static, Input, ListView, ListItem, Label
 from textual.containers import Container
 import webbrowser
 
@@ -45,7 +45,8 @@ class Avocet(App):
             self.collection_map = self.raindrop.getCollections()
             self.raindrop_collections = collection_to_list_items(self.collection_map)
             yield ListView(*self.raindrop_collections, id="raindrop_collections")
-            self.raindrop_map = self.raindrop.getRaindropsBy("30350988")
+            first_collection_id = next(iter(self.collection_map.values()))['id']
+            self.raindrop_map = self.raindrop.getRaindropsBy(first_collection_id)
             yield ListView(*raindrops_to_list_items(self.raindrop_map), id="raindrop_previews")
 
     # Set focus to the input field.
