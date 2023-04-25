@@ -5,24 +5,24 @@ import os
 class Raindrop:
 
     def __init__(self) -> None:
-       token = os.environ["RAINDROP"]
-       self.headers = {"Authorization": f"Bearer {token}"}
+        token = os.environ["RAINDROP"]
+        self.headers = {"Authorization": f"Bearer {token}"}
 
     def getCollections(self) -> Dict:
-        r = httpx.get("https://api.raindrop.io/rest/v1/collections", headers = self.headers)
+        r = httpx.get("https://api.raindrop.io/rest/v1/collections", headers=self.headers)
         collections = dict()
         for item in r.json()['items']:
             collections[
                 item['title']] = {
-                'id': item['_id'], 
+                'id': item['_id'],
                 'count': item['count'],
                 'type': 'collections'
             }
         r.close()
         return collections
-    
+
     def getRaindropsBy(self, collection_id: str) -> Dict:
-        r = httpx.get(f"https://api.raindrop.io/rest/v1/raindrops/{collection_id}", headers = self.headers)
+        r = httpx.get(f"https://api.raindrop.io/rest/v1/raindrops/{collection_id}", headers=self.headers)
         raindrops = dict()
         for raindrop in r.json()['items']:
             raindrops[raindrop['_id']] = {
@@ -34,9 +34,9 @@ class Raindrop:
             }
         r.close()
         return raindrops
-    
+
     def getRaindropBy(self, raindrop_id: str) -> Dict:
-        r = httpx.get(f"https://api.raindrop.io/rest/v1/raindrop/{raindrop_id}", headers = self.headers)
+        r = httpx.get(f"https://api.raindrop.io/rest/v1/raindrop/{raindrop_id}", headers=self.headers)
         item = r.json()['item']
         raindrop = dict()
         raindrop[item['_id']] = {
@@ -48,10 +48,11 @@ class Raindrop:
         }
         r.close()
         return raindrop
-    
+
     def postRaindrop(self, raindrop: Dict) -> None:
-        r = httpx.post("https://api.raindrop.io/rest/v1/raindrop", headers = self.headers, json=raindrop)
+        r = httpx.post("https://api.raindrop.io/rest/v1/raindrop", headers=self.headers, json=raindrop)
         r.close()
+
 
 if __name__ == "__main__":
     raindrop = Raindrop()

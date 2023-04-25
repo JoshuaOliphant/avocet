@@ -14,6 +14,7 @@ def mock_raindrop_env_var():
     with mock.patch.dict(os.environ, {"RAINDROP": "RAINDROP_MOCK"}):
         yield
 
+
 RAINDROP_RESPONSE = {
     "result": True,
     "item": {
@@ -44,7 +45,7 @@ RAINDROP_RESPONSE = {
             },
             {
                 "type": "image",
-                "link": "https://webimages.mongodb.com/_com_assets/cms/kze3vbe452fkoetdx-PC4A7967%201.png?auto=format%252Ccompress&w=3840&quality=75"
+                "link": "https://webimages.mongodb.com/_com_assets/cms/kze3vbe452fkoetdx-PC4A7967%201.png?auto=format%252Ccompress&w=3840&quality=75"  # noqa: E501
             }
         ],
         "user": {
@@ -66,7 +67,7 @@ RAINDROP_RESPONSE = {
     "author": True
 }
 
-URL="https://api.raindrop.io/rest/v1/raindrop/518084943"
+URL = "https://api.raindrop.io/rest/v1/raindrop/518084943"
 
 def test_getRaindropByCollectionId(httpx_mock, raindrop):
     httpx_mock.add_response(url=URL, json=RAINDROP_RESPONSE)
@@ -108,8 +109,8 @@ def test_getRaindropsBy(raindrop):
     mock_response.json.return_value = {
         'items': [
             {'_id': '1', 'title': 'Raindrop 1', 'excerpt': 'Excerpt 1', 'tags': [], 'link': 'https://example.com'},
-            {'_id': '2', 'title': 'Raindrop 2', 'excerpt': 'Excerpt 2', 'tags': ['tag1', 'tag2'], 'link': 'https://example.com'},
-            {'_id': '3', 'title': 'Raindrop 3', 'excerpt': 'Excerpt 3', 'tags': ['tag3'], 'link': 'https://example.com'},
+            {'_id': '2', 'title': 'Raindrop 2', 'excerpt': 'Excerpt 2', 'tags': ['tag1', 'tag2'], 'link': 'https://example.com'},  # noqa: E501
+            {'_id': '3', 'title': 'Raindrop 3', 'excerpt': 'Excerpt 3', 'tags': ['tag3'], 'link': 'https://example.com'}
         ]
     }
     mock_get = mock.Mock(return_value=mock_response)
@@ -123,22 +124,38 @@ def test_getRaindropsBy(raindrop):
 
         # Assert that the raindrops were correctly parsed
         expected_raindrops = {
-            '1': {'excerpt': 'Excerpt 1', 'tags': [], 'title': 'Raindrop 1', 'link': 'https://example.com', 'type': 'collection'},
-            '2': {'excerpt': 'Excerpt 2', 'tags': ['tag1', 'tag2'], 'title': 'Raindrop 2', 'link': 'https://example.com', 'type': 'collection'},
-            '3': {'excerpt': 'Excerpt 3', 'tags': ['tag3'], 'title': 'Raindrop 3', 'link': 'https://example.com', 'type': 'collection'},
+            '1': {'excerpt': 'Excerpt 1',
+                  'tags': [],
+                  'title': 'Raindrop 1',
+                  'link': 'https://example.com',
+                  'type': 'collection'},
+            '2': {'excerpt': 'Excerpt 2',
+                  'tags': ['tag1', 'tag2'],
+                  'title': 'Raindrop 2',
+                  'link': 'https://example.com',
+                  'type': 'collection'},
+            '3': {'excerpt': 'Excerpt 3',
+                  'tags': ['tag3'],
+                  'title': 'Raindrop 3',
+                  'link': 'https://example.com',
+                  'type': 'collection'},
         }
         assert raindrops == expected_raindrops
 
 def test_getRaindropByRaindropId(mocker, raindrop):
     # Define the mock response
-    response = {'item': {'_id': '123', 'excerpt': 'test', 'tags': ['tag1', 'tag2'], 'title': 'test', 'link': 'https://test.com'}}
+    response = {'item':
+                {'_id': '123', 'excerpt': 'test',
+                 'tags': ['tag1', 'tag2'], 'title': 'test', 'link': 'https://test.com'}}
 
     # Mock the HTTP request using the response
     mocker.patch('httpx.get', return_value=mocker.Mock(json=lambda: response))
 
     # Call the function and check the response
     result = raindrop.getRaindropBy('123')
-    assert result == {'123': {'excerpt': 'test', 'tags': ['tag1', 'tag2'], 'title': 'test', 'link': 'https://test.com', 'type': 'raindrop'}}
+    assert result == {'123':
+                      {'excerpt': 'test', 'tags': ['tag1', 'tag2'], 'title': 'test', 'link': 'https://test.com',
+                       'type': 'raindrop'}}
 
 def test_postRaindrop(mocker, raindrop):
     mock_post = mocker.patch.object(httpx, "post")
