@@ -82,13 +82,10 @@ class Avocet(App):
 
     def on_input_submitted(self, event: Input.Submitted):
         url = event.value
-        if url.startswith("http"):
-            raindrop = {
-                "link": url
-            }
-            self._raindrop.postRaindrop(raindrop)
-        else:
-            self.output = "Please enter a valid URL"
+        raindrop = {
+            "link": url
+        }
+        self._raindrop.postRaindrop(raindrop)
 
 
 if __name__ == "__main__":

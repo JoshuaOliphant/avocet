@@ -93,7 +93,7 @@ def test_getCollections(raindrop):
         collections = raindrop.getCollections()
 
         # Assert that the httpx get method was called with the correct arguments
-        mock_get.assert_called_once_with("https://api.raindrop.io/rest/v1/collections", headers=raindrop.headers)
+        mock_get.assert_called_once_with("https://api.raindrop.io/rest/v1/collections", headers=raindrop._headers)
 
         # Assert that the collections were correctly parsed
         expected_collections = {
@@ -120,7 +120,7 @@ def test_getRaindropsBy(raindrop):
         raindrops = raindrop.getRaindropsBy('123')
 
         # Assert that the httpx get method was called with the correct arguments
-        mock_get.assert_called_once_with("https://api.raindrop.io/rest/v1/raindrops/123", headers=raindrop.headers)
+        mock_get.assert_called_once_with("https://api.raindrop.io/rest/v1/raindrops/123", headers=raindrop._headers)
 
         # Assert that the raindrops were correctly parsed
         expected_raindrops = {
@@ -163,6 +163,6 @@ def test_postRaindrop(mocker, raindrop):
     raindrop.postRaindrop({"title": "test", "url": "http://example.com"})
     mock_post.assert_called_once_with(
         "https://api.raindrop.io/rest/v1/raindrop",
-        headers=raindrop.headers,
+        headers=raindrop._headers,
         json={"title": "test", "url": "http://example.com"},
     )

@@ -6,10 +6,10 @@ class Raindrop:
 
     def __init__(self) -> None:
         token = os.environ["RAINDROP"]
-        self.headers = {"Authorization": f"Bearer {token}"}
+        self._headers = {"Authorization": f"Bearer {token}"}
 
     def getCollections(self) -> Dict:
-        r = httpx.get("https://api.raindrop.io/rest/v1/collections", headers=self.headers)
+        r = httpx.get("https://api.raindrop.io/rest/v1/collections", headers=self._headers)
         collections = dict()
         for item in r.json()['items']:
             collections[
@@ -22,7 +22,7 @@ class Raindrop:
         return collections
 
     def getRaindropsBy(self, collection_id: str) -> Dict:
-        r = httpx.get(f"https://api.raindrop.io/rest/v1/raindrops/{collection_id}", headers=self.headers)
+        r = httpx.get(f"https://api.raindrop.io/rest/v1/raindrops/{collection_id}", headers=self._headers)
         raindrops = dict()
         for raindrop in r.json()['items']:
             raindrops[raindrop['_id']] = {
@@ -36,7 +36,7 @@ class Raindrop:
         return raindrops
 
     def getRaindropBy(self, raindrop_id: str) -> Dict:
-        r = httpx.get(f"https://api.raindrop.io/rest/v1/raindrop/{raindrop_id}", headers=self.headers)
+        r = httpx.get(f"https://api.raindrop.io/rest/v1/raindrop/{raindrop_id}", headers=self._headers)
         item = r.json()['item']
         raindrop = dict()
         raindrop[item['_id']] = {
@@ -50,7 +50,7 @@ class Raindrop:
         return raindrop
 
     def postRaindrop(self, raindrop: Dict) -> None:
-        r = httpx.post("https://api.raindrop.io/rest/v1/raindrop", headers=self.headers, json=raindrop)
+        r = httpx.post("https://api.raindrop.io/rest/v1/raindrop", headers=self._headers, json=raindrop)
         r.close()
 
 
