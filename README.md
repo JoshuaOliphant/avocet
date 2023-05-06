@@ -1,3 +1,5 @@
+[![Python application](https://github.com/JoshuaOliphant/avocet/actions/workflows/python-app.yml/badge.svg)](https://github.com/JoshuaOliphant/avocet/actions/workflows/python-app.yml)
+
 # Avocet
 
 Avocet is a TUI the accesses the [Raindrop API](https://developer.raindrop.io/). It is written in Python and uses the [Textual Framework](https://textual.textualize.io).
@@ -14,4 +16,4 @@ Avocet is a TUI the accesses the [Raindrop API](https://developer.raindrop.io/).
 4. Tab between sections. Use the arrow keys to navigate within a section. Press enter in the collections section to view the bookmarks in that collection. Press enter on a bookmark to open it in your default browser. Press `ctrl-c` to quit.
 5. View the [justfile](./justfile) for more commands.
 
-[![Python application](https://github.com/JoshuaOliphant/avocet/actions/workflows/python-app.yml/badge.svg)](https://github.com/JoshuaOliphant/avocet/actions/workflows/python-app.yml)
+![Screenshot](./media/Screenshot.png)
