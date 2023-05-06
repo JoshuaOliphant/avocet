@@ -11,9 +11,10 @@ Avocet is a TUI the accesses the [Raindrop API](https://developer.raindrop.io/).
 
 ## Getting Started
 1. Clone the repo
-2. Run `just install` or `poetry install` to install dependencies
-3. Run `just run` or `poetry run avocet` to run the
-4. Tab between sections. Use the arrow keys to navigate within a section. Press enter in the collections section to view the bookmarks in that collection. Press enter on a bookmark to open it in your default browser. Press `ctrl-c` to quit.
-5. View the [justfile](./justfile) for more commands.
+1. Run `just install` or `poetry install` to install dependencies
+1. Set your Raindrop.io API token as the environment variable `RAINDROP`.
+1. Run `just run` or `poetry run avocet` to run the
+1. Tab between sections. Use the arrow keys to navigate within a section. Press enter in the collections section to view the bookmarks in that collection. Press enter on a bookmark to open it in your default browser. Press `ctrl-c` to quit.
+1. View the [justfile](./justfile) for more commands.
 
 ![Screenshot](./media/Screenshot.png)
