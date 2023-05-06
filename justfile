@@ -1,8 +1,11 @@
+set positional-arguments
+
 alias r := run
 alias s := shell
 alias c := console
 alias i := install
-aliat t := test
+alias t := test
+alias p := push
 
 shell:
 	poetry shell
@@ -18,3 +21,9 @@ console:
 
 test:
     poetry run pytest
+
+push:
+    git push origin main
+
+commit message:
+    git commit -am {{message}}
