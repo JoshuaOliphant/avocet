@@ -2,6 +2,7 @@ alias r := run
 alias s := shell
 alias c := console
 alias i := install
+aliat t := test
 
 shell:
 	poetry shell
@@ -14,3 +15,6 @@ run:
 
 console:
 	textual console
+
+test:
+    poetry run pytest
