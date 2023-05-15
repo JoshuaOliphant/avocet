@@ -1,7 +1,10 @@
-from textual.app import App, ComposeResult
-from textual.widgets import Header, Static, Input, ListView, ListItem, Label
-from textual.containers import Container
 import webbrowser
+
+from textual.app import App, ComposeResult
+from textual.containers import Container, Horizontal, Vertical
+from textual.reactive import reactive
+from textual.widgets import Header, Static, Input, ListView, ListItem, Label
+from textual import log
 
 from raindrop import Raindrop
 
@@ -35,22 +38,45 @@ class Avocet(App):
 
     _raindrop = Raindrop()
 
+    url = reactive("")
+    collection = reactive("")
+    tags = reactive([])
+
     def compose(self) -> ComposeResult:
         yield Header()
-        with Container():
-            yield URLInput(id="url_input")
-            self._collection_map = self._raindrop.getCollections()
-            raindrop_collections = collection_to_list_items(self._collection_map)
-            yield ListView(*raindrop_collections, id="raindrop_collections")
-            first_collection_id = next(iter(self._collection_map.values()))['id']
-            self._raindrop_map = self._raindrop.getRaindropsBy(first_collection_id)
-            yield ListView(*raindrops_to_list_items(self._raindrop_map), id="raindrop_previews")
+        with Container(id="app-grid"):
+            with Vertical(id="vertical_inputs"):
+                yield Input(placeholder="https://", id="url")
+                yield Input(placeholder="collection name", id="collection")
+                yield Input(placeholder="tags name", id="tags")
+            with Horizontal(id="horizontal_lists"):
+                self._collection_map = self._raindrop.getCollections()
+                raindrop_collections = collection_to_list_items(self._collection_map)
+                yield ListView(*raindrop_collections, id="raindrop_collections")
+                first_collection_id = next(iter(self._collection_map.values()))['id']
+                self._raindrop_map = self._raindrop.getRaindropsByCollectionID(first_collection_id)
+                yield ListView(*raindrops_to_list_items(self._raindrop_map), id="raindrop_previews")
+
+    def on_input_changed(self, event: Input.Changed) -> None:
+        log(f"Input changed: {event.value}")
+        if event.input.id == "url":
+            log(f"URL changed: {event.value}")
+            self.url = event.value
+        elif event.input.id == "collection":
+            log(f"Collection changed: {event.value}")
+            self.collection = event.value
+        elif event.input.id == "tags":
+            log(f"Tags changed: {event.value}")
+            self.tags.append(event.value)
+        else:
+            log(f"Unknown input changed: {event.input.id}")
 
     # Set focus to the input field.
     def on_mount(self) -> None:
-        self.query_one(Input).focus()
+        self.query_one("#url").focus()
 
     def handle_raindrop_collection_selected(self, event: ListView.Selected):
+        log(f"Collection selected: {event.item.id}")
         # get the collection that was selected
         raindrop_collection = self._collection_map[event.item.id]
         # get the list view that will show the raindrops in the collection
@@ -58,7 +84,7 @@ class Avocet(App):
         # clear the list view
         raindrop_previews.clear()
         # get the raindrops in the collection
-        new_raindrops_collection = self._raindrop.getRaindropsBy(str(raindrop_collection["id"]))
+        new_raindrops_collection = self._raindrop.getRaindropsByCollectionID(str(raindrop_collection["id"]))
         if new_raindrops_collection is not None:
             # convert the raindrops to list items
             new_raindrops = raindrops_to_list_items(new_raindrops_collection)
@@ -67,12 +93,14 @@ class Avocet(App):
                 raindrop_previews.append(raindrop)
 
     def handle_raindrop_previews_selected(self, event: ListView.Selected):
+        log(f"Raindrop selected: {event.item.id}")
         raindrop_id = event.item.id.split("raindrop-", 1)[1]
-        raindrop_map = self._raindrop.getRaindropBy(raindrop_id)
+        raindrop_map = self._raindrop.getRaindropByRaindropId(raindrop_id)
         link = raindrop_map[int(raindrop_id)]['link']
         webbrowser.open(link)
 
     def on_list_view_selected(self, event: ListView.Selected):
+        log(f"List view selected: {event.item.name}")
         if event.item.name == "collection_list":
             self.handle_raindrop_collection_selected(event)
         elif event.item.name == "raindrop_list":
@@ -81,11 +109,11 @@ class Avocet(App):
             raise ValueError("Unknown list view selected")
 
     def on_input_submitted(self, event: Input.Submitted):
-        url = event.value
-        raindrop = {
-            "link": url
-        }
-        self._raindrop.postRaindrop(raindrop)
+        log(f"Input submitted: {event.value}")
+        log(f"Collections: {self.collection}")
+        log(f"Tags: {self.tags}")
+        log(f"URL: {self.url}")
+        self._raindrop.postRaindrop(self.url, self.collection, self.tags)
 
 
 if __name__ == "__main__":

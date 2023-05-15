@@ -1,28 +1,23 @@
-#raindrop_collections {
-    width: 50%;
-    dock: left;
+#app-grid {
+    layout: grid;
+    grid-size: 1;
+    grid-rows: 30% 70%;
 }
 
-#raindrop_previews {
-    width: 50%;
-    dock: right;
-}
-
-#url_input {
-    width: 100%;
-    dock: top;
+#vertical_inputs > Input {
+    color: auto;
     margin-bottom: 1;
+    padding: 1;
     border: dashed #CCCCCC;
 }
 
-ListView {
-    margin-top: 4;
-    border: dashed #CCCCCC;
-    
+#horizontal_lists {
+    height: 100%;
 }
 
-ListItem {
-    height: 1;
+#horizontal_lists > ListView {
+    margin-right: 1;
+    border: dashed #CCCCCC;
 }
 
 Container {

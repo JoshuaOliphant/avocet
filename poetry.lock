@@ -928,14 +928,14 @@ files = [
 
 [[package]]
 name = "textual"
-version = "0.19.1"
+version = "0.23.0"
 description = "Modern Text User Interface framework"
 category = "main"
 optional = false
 python-versions = ">=3.7,<4.0"
 files = [
-    {file = "textual-0.19.1-py3-none-any.whl", hash = "sha256:13a9d48b3eb3bb4f04a8d2f27760861f68d77e1ed942372d447322a387123223"},
-    {file = "textual-0.19.1.tar.gz", hash = "sha256:5a82c68f83c58aad1a93180f598e5bc604695dc8f2d15d00e6c44b9eb1393b81"},
+    {file = "textual-0.23.0-py3-none-any.whl", hash = "sha256:9eb1284ae312801b12b19668bf84faa2ae226a2ab6269e5f84edff851f2ad371"},
+    {file = "textual-0.23.0.tar.gz", hash = "sha256:f3e08d7afaf6c8562d2d5d6230fa891b515ebf9813cda4ea1807a639032edbd4"},
 ]
 
 [package.dependencies]
@@ -1101,4 +1101,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "ddee30a5581b7040f8e84a5bcb38695e2da0392858599b8876f183393b54f431"
+content-hash = "a30609f367b6feeb55ad0e02c6b589230259c0ad97c675f0c2fd62c414990eac"

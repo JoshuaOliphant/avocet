@@ -2,26 +2,28 @@ from typing import Dict
 import httpx
 import os
 
+from textual import log
+
 class Raindrop:
 
     def __init__(self) -> None:
         token = os.environ["RAINDROP"]
         self._headers = {"Authorization": f"Bearer {token}"}
-
-    def getCollections(self) -> Dict:
         r = httpx.get("https://api.raindrop.io/rest/v1/collections", headers=self._headers)
-        collections = dict()
+        self.collections = dict()
         for item in r.json()['items']:
-            collections[
+            self.collections[
                 item['title']] = {
                 'id': item['_id'],
                 'count': item['count'],
                 'type': 'collections'
             }
         r.close()
-        return collections
 
-    def getRaindropsBy(self, collection_id: str) -> Dict:
+    def getCollections(self) -> Dict:
+        return self.collections
+
+    def getRaindropsByCollectionID(self, collection_id: str) -> Dict:
         r = httpx.get(f"https://api.raindrop.io/rest/v1/raindrops/{collection_id}", headers=self._headers)
         raindrops = dict()
         for raindrop in r.json()['items']:
@@ -35,7 +37,7 @@ class Raindrop:
         r.close()
         return raindrops
 
-    def getRaindropBy(self, raindrop_id: str) -> Dict:
+    def getRaindropByRaindropId(self, raindrop_id: str) -> Dict:
         r = httpx.get(f"https://api.raindrop.io/rest/v1/raindrop/{raindrop_id}", headers=self._headers)
         item = r.json()['item']
         raindrop = dict()
@@ -49,8 +51,15 @@ class Raindrop:
         r.close()
         return raindrop
 
-    def postRaindrop(self, raindrop: Dict) -> None:
+    def postRaindrop(self, url: str, collection: str, tags: list) -> None:
+        raindrop = {
+            "link": url,
+            "collectionId": self.collections[collection]['id'],
+            "tags": tags
+        }
+        log(f"Posting raindrop: {raindrop}")
         r = httpx.post("https://api.raindrop.io/rest/v1/raindrop", headers=self._headers, json=raindrop)
+        log(f"Raindrop posted: {r.json()}")
         r.close()
 
 
