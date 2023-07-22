@@ -12,12 +12,12 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.11"
-textual-dev = "^0.0.2"
 rich = "^13.1.0"
 httpx = "^0.23.3"
 pytest = "^7.3.0"
 pytest-mock = "^3.10.0"
-textual = "^0.23.0"
+textual = "^0.30.0"
+textual-dev = "^1.0.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.3.0"
