@@ -70,3 +70,8 @@ class DatabaseManager:
         session = self.Session()
         collections = session.query(Collection).all()
         return collections
+
+    def getRaindropsByCollectionID(self, collection_id):
+        session = self.Session()
+        raindrops = session.query(Raindrop).filter(Raindrop.collection_id == collection_id).all()
+        return raindrops
