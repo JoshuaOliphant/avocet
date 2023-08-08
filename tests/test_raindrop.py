@@ -2,7 +2,7 @@ import os
 import httpx
 from unittest.mock import patch, Mock
 
-from avocet.raindrop import Raindrop
+from raindrop_api import Raindrop
 
 
 class TestRaindrop:

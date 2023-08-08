@@ -16,8 +16,9 @@ rich = "^13.1.0"
 httpx = "^0.23.3"
 pytest = "^7.3.0"
 pytest-mock = "^3.10.0"
-textual = "^0.30.0"
+textual = "^0.32.0"
 textual-dev = "^1.0.1"
+sqlalchemy = "^2.0.19"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.3.0"
