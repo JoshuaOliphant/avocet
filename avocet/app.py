@@ -1,4 +1,5 @@
 import os
+import webbrowser
 from textual import on
 from textual.app import App, ComposeResult
 from textual.widgets import OptionList
@@ -8,6 +9,8 @@ from database_manager import DatabaseManager
 
 class Avocet(App):
 
+    CSS_PATH = "avocet.css"
+
     def compose(self) -> ComposeResult:
         yield OptionList(id="collection_option_list", )
         yield OptionList(id="raindrop_option_list")
@@ -15,8 +18,6 @@ class Avocet(App):
     def on_mount(self) -> None:
         self.initialize_collections()
         self.initialize_raindrops(self.collections[0].id)
-        
-    
 
     def initialize_collections(self):
         # Check if the database exists
@@ -46,6 +47,12 @@ class Avocet(App):
         option_list = self.query_one("#raindrop_option_list")
         option_list.clear_options()
         option_list.add_options(options)
+        
+    @on(OptionList.OptionSelected, selector="#raindrop_option_list")
+    def select_raidrop(self, event: OptionList.OptionSelected):
+        raindrop_id = event.option.id
+        raindrop = self.database_manager.getRaindropByRaindropID(raindrop_id)
+        webbrowser.open(raindrop.link)
 
 
 if __name__ == "__main__":

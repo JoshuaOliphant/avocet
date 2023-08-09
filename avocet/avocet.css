@@ -1,30 +1,3 @@
-#app-grid {
-    layout: grid;
-    grid-size: 1;
-    grid-rows: 30% 70%;
-}
-
-#vertical_inputs > Input {
-    color: auto;
-    margin-bottom: 1;
-    padding: 1;
-    border: dashed #CCCCCC;
-}
-
-#horizontal_lists {
-    height: 100%;
-}
-
-#horizontal_lists > ListView {
-    margin-right: 1;
-    border: dashed #CCCCCC;
-}
-
-Container {
-    background: #000000;
-}
-
-Header {
-    background: #000000;
-    color: #FFFFFF;
+Screen {
+    layout: horizontal
 }

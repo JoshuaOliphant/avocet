@@ -75,3 +75,8 @@ class DatabaseManager:
         session = self.Session()
         raindrops = session.query(Raindrop).filter(Raindrop.collection_id == collection_id).all()
         return raindrops
+    
+    def getRaindropByRaindropID(self, raindrop_id):
+        session = self.Session()
+        raindrop = session.query(Raindrop).filter(Raindrop.id == raindrop_id).first()
+        return raindrop
