@@ -1,41 +1,26 @@
 from typing import Dict
 import httpx
 import os
-
+import json
+from datetime import datetime
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from models import Collection, Base
 from textual import log
 
-class Raindrop:
+class RaindropAPI:
 
     def __init__(self) -> None:
         token = os.environ["RAINDROP"]
         self._headers = {"Authorization": f"Bearer {token}"}
-        r = httpx.get("https://api.raindrop.io/rest/v1/collections", headers=self._headers)
-        self.collections = dict()
-        for item in r.json()['items']:
-            self.collections[
-                item['title']] = {
-                'id': item['_id'],
-                'count': item['count'],
-                'type': 'collections'
-            }
-        r.close()
 
     def getCollections(self) -> Dict:
-        return self.collections
+        r = httpx.get("https://api.raindrop.io/rest/v1/collections", headers=self._headers)
+        return r.json()['items']
 
     def getRaindropsByCollectionID(self, collection_id: str) -> Dict:
         r = httpx.get(f"https://api.raindrop.io/rest/v1/raindrops/{collection_id}", headers=self._headers)
-        raindrops = dict()
-        for raindrop in r.json()['items']:
-            raindrops[raindrop['_id']] = {
-                'excerpt': raindrop['excerpt'],
-                'tags': raindrop['tags'],
-                'title': raindrop['title'],
-                'link': raindrop['link'],
-                'type': 'collection'
-            }
-        r.close()
-        return raindrops
+        return r.json()['items']
 
     def getRaindropByRaindropId(self, raindrop_id: str) -> Dict:
         r = httpx.get(f"https://api.raindrop.io/rest/v1/raindrop/{raindrop_id}", headers=self._headers)
