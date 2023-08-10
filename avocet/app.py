@@ -22,11 +22,13 @@ class Avocet(App):
     def initialize_collections(self):
         # Check if the database exists
         db_name = os.environ.get("DB_NAME", "avocet")
-        self.engine = create_engine(f'sqlite:///{db_name}.db')
+        self.engine = create_engine(f'sqlite:///{db_name}.sqlite')
         self.database_manager = DatabaseManager(self.engine)
-        if not os.path.exists(f"{db_name}.db"):
+        if not os.path.exists(f"{db_name}.sqlite"):
             self.database_manager.create_tables()
             self.database_manager.add_collections()
+        else:
+            self.database_manager.update_collections()
         self.collections = self.database_manager.getCollections()
         options = [Option(prompt=collection.title, id=collection.id) for collection in self.collections]
         option_list = self.query_one("#collection_option_list")

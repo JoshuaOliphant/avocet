@@ -1,8 +1,8 @@
-from datetime import datetime
+import time
 from sqlalchemy.orm import sessionmaker
 from models import Collection, Base, Raindrop
-from rich import print as print
 from raindrop_api import RaindropAPI
+from textual import log
 
 class DatabaseManager:
     def __init__(self, engine):
@@ -14,57 +14,20 @@ class DatabaseManager:
         Base.metadata.create_all(self.engine)
 
     def add_collections(self):
-        # Create a Raindrop object
+        start_time = time.time()
         session = self.Session()
         raindrop_api = RaindropAPI()
         collections = raindrop_api.getCollections()
-        print(f"collections: {collections}")
-
-        # Iterate over the items and create a Collection object for each item
-        for item in collections:
-            # Convert last_action, created and last_update to datetime objects
-            last_action = datetime.strptime(item['lastAction'], '%Y-%m-%dT%H:%M:%S.%fZ')
-            created = datetime.strptime(item['created'], '%Y-%m-%dT%H:%M:%S.%fZ')
-            last_update = datetime.strptime(item['lastUpdate'], '%Y-%m-%dT%H:%M:%S.%fZ')
-            
-            # Check if a record with the same id already exists in the database
-            existing_collection = session.query(Collection).filter(Collection.id == item['_id']).first()
-            if existing_collection:
-                # If a record with the same id exists, skip creating the object
-                collection = existing_collection
-            else:
-                # If a record with the same id doesn't exist, create the object
-                collection = Collection(id=item['_id'], title=item['title'], description=item['description'], count=item['count'], last_action=last_action, created=created, last_update=last_update)
-                # Add the Collection object to the session
-                session.add(collection)
-
-            raindrops = raindrop_api.getRaindropsByCollectionID(collection.id)
-            for raindrop in raindrops:
-                # Convert created and last_update to datetime objects
-                created = datetime.strptime(raindrop['created'], '%Y-%m-%dT%H:%M:%S.%fZ')
-                last_update = datetime.strptime(raindrop['lastUpdate'], '%Y-%m-%dT%H:%M:%S.%fZ')
-                # Check if a record with the same id already exists in the database
-                existing_raindrop = session.query(Raindrop).filter(Raindrop.id == raindrop['_id']).first()
-                if existing_raindrop:
-                    # If a record with the same id exists, skip creating the object
-                    raindrop = existing_raindrop
-                else:
-                    # If a record with the same id doesn't exist, create the object
-                    raindrop = Raindrop(id=raindrop['_id'], excerpt=raindrop['excerpt'], note=raindrop['excerpt'], type=raindrop['type'], title=raindrop['title'], link=raindrop['link'], created=created, last_update=last_update, domain=raindrop['domain'], collection_id=collection.id)
-                    # Add the Raindrop object to the session
-                    session.add(raindrop)
-
-                print(f"Raindrop: {raindrop.title}")
-                # Add the Raindrop object to the Collection object
-                collection.raindrops.append(raindrop)
-                # Add the Raindrop object to the session
-                session.add(raindrop)
-
-            print(f"Collection: {collection.title}")
+        for collection_data in collections:
+            collection = Collection(id=collection_data['_id'], title=collection_data['title'])
             session.add(collection)
-
-        # Commit the changes to the database
+            raindrops = raindrop_api.getRaindropsByCollectionID(collection_data['_id'])
+            for raindrop_data in raindrops:
+                raindrop = Raindrop(id=raindrop_data['_id'], excerpt=raindrop_data['excerpt'], title=raindrop_data['title'], link=raindrop_data['link'], collection_id=collection.id)
+                session.add(raindrop)
         session.commit()
+        end_time = time.time()
+        log(f"Added in {end_time - start_time} seconds")
 
     def getCollections(self):
         session = self.Session()
@@ -80,3 +43,21 @@ class DatabaseManager:
         session = self.Session()
         raindrop = session.query(Raindrop).filter(Raindrop.id == raindrop_id).first()
         return raindrop
+    
+    def update_collections(self):
+        start_time = time.time()
+        session = self.Session()
+        raindrop_api = RaindropAPI()
+        collections = raindrop_api.getCollections()
+        existing_collections = self.getCollections()
+        not_existing_collections = [Collection(id=collection_data['_id'], title=collection_data['title']) for collection_data in collections if collection_data['_id'] not in [c.id for c in existing_collections]]
+        session.add_all(not_existing_collections)
+        session.commit()
+        for collection_data in collections:
+            raindrops = raindrop_api.getRaindropsByCollectionID(collection_data['_id'])
+            existing_raindrops = self.getRaindropsByCollectionID(collection_data['_id'])
+            not_existing_raindrops = [Raindrop(id=raindrop_data['_id'], excerpt=raindrop_data['excerpt'], title=raindrop_data['title'], link=raindrop_data['link'], collection_id=collection_data['_id']) for raindrop_data in raindrops if raindrop_data['_id'] not in [r.id for r in existing_raindrops]]
+            session.add_all(not_existing_raindrops)
+            session.commit()
+        end_time = time.time()
+        log(f"Updated in {end_time - start_time} seconds")
