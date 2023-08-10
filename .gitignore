@@ -133,4 +133,4 @@ dmypy.json
 .DS_Store
 
 # database
-avocet.db
+avocet.sqlite
