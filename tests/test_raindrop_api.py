@@ -1,10 +1,10 @@
 import pytest
-from httpx import Response
 from pytest_httpx import HTTPXMock
 from avocet.raindrop_api import RaindropAPI
 
 @pytest.fixture
-def api():
+def api(monkeypatch):
+    monkeypatch.setenv("RAINDROP", "fake_token_value")
     return RaindropAPI()
 
 @pytest.mark.asyncio
