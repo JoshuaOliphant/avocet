@@ -50,6 +50,7 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
+__pycache__
 
 # Translations
 *.mo
@@ -134,3 +135,6 @@ dmypy.json
 
 # database
 avocet.sqlite
+
+# vs code
+.vscode
