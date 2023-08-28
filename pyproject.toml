@@ -13,19 +13,22 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "^3.11"
 rich = "^13.1.0"
-httpx = "^0.23.3"
+httpx = "^0.24.1"
 pytest = "^7.3.0"
-pytest-mock = "^3.10.0"
-textual = "^0.34.0"
-textual-dev = "^1.0.1"
+textual = "^0.35.1"
 sqlalchemy = "^2.0.19"
+textual-web = "^0.4.2"
 
-[tool.poetry.group.dev.dependencies]
+[tool.poetry.group.test.dependencies]
 pytest = "^7.3.0"
-pytest-httpx = "^0.21.3"
-flake8 = "^6.0.0"
+pytest-httpx = "^0.23.1"
 pytest-asyncio = "^0.21.1"
 asynctest = "^0.13.0"
+pytest-mock = "^3.10.0"
+
+[tool.poetry.group.dev.dependencies]
+flake8 = "^6.0.0"
+textual-dev = "^1.0.1"
 
 [build-system]
 requires = ["poetry-core"]
