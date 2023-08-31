@@ -18,6 +18,7 @@ pytest = "^7.3.0"
 textual = "^0.35.1"
 sqlalchemy = "^2.0.19"
 textual-web = "^0.4.2"
+langchain = "^0.0.277"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.3.0"
