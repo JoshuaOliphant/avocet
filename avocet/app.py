@@ -1,4 +1,3 @@
-import asyncio
 import os
 import time
 import webbrowser
@@ -35,16 +34,7 @@ class Avocet(App):
         raindrop_api = RaindropAPI()
 
         if not os.path.exists(db_path):
-            self.engine = create_engine(f'sqlite:///{db_path}')
-            self.database_manager = DatabaseManager(self.engine)
-            self.database_manager.create_tables()
-            collection_data_list = await raindrop_api.get_collections()
-            self.query_one(ProgressBar).update(total=len(collection_data_list))
-            for collection_data in collection_data_list:
-                self.database_manager.add_collection(collection_data)
-                raindrop_data_list = await raindrop_api.get_raindrops_by_collection_id(collection_data["_id"])
-                self.database_manager.add_raindrops(raindrop_data_list, collection_data["_id"])
-                self.query_one(ProgressBar).advance(1)
+            await self.initialize_db(db_path, raindrop_api)
         else:
             self.engine = create_engine(f'sqlite:///{db_path}')
             self.database_manager = DatabaseManager(self.engine)
@@ -53,6 +43,18 @@ class Avocet(App):
         self.initialize_view()
         end_time = time.time()
         log(f"Startup time: {start_time-end_time}")
+
+    async def initialize_db(self, db_path, raindrop_api):
+        self.engine = create_engine(f'sqlite:///{db_path}')
+        self.database_manager = DatabaseManager(self.engine)
+        self.database_manager.create_tables()
+        collection_data_list = await raindrop_api.get_collections()
+        self.query_one(ProgressBar).update(total=len(collection_data_list))
+        for collection_data in collection_data_list:
+            self.database_manager.add_collection(collection_data)
+            raindrop_data_list = await raindrop_api.get_raindrops_by_collection_id(collection_data["_id"])
+            self.database_manager.add_raindrops(raindrop_data_list, collection_data["_id"])
+            self.query_one(ProgressBar).advance(1)
 
     def initialize_view(self):
         collections = self.database_manager.get_collections()
@@ -82,7 +84,9 @@ class Avocet(App):
         log("selected")
         raindrop_id = event.option.id
         raindrop = self.database_manager.get_raindrop_by_raindrop_id(raindrop_id)
-        webbrowser.open(raindrop.link)
+        client_browser = webbrowser.get()
+        client_browser.open(raindrop.link)
+        # webbrowser.open(raindrop.link)
 
 
 if __name__ == "__main__":
