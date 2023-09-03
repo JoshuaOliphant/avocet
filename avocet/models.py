@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -23,5 +23,7 @@ class Raindrop(Base):
     link = Column(String)
     created = Column(DateTime)
     last_update = Column(DateTime)
-    domain = Column(String)
     collection_id = Column(Integer, ForeignKey('collections.id'))
+    tags = Column(JSON)
+    # non-raindrop columns
+    text = Column(String)
