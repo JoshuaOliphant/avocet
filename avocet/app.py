@@ -9,10 +9,14 @@ from textual.widgets.option_list import Option
 from sqlalchemy import create_engine
 from database_manager import DatabaseManager
 from raindrop_api import RaindropAPI
+from ai import AI
 
 class Avocet(App):
 
     CSS_PATH = "avocet.tcss"
+    BINDINGS = [
+        ("a", "add_ai()", "Add AI")
+    ]
 
     def compose(self) -> ComposeResult:
         with Center():
@@ -23,30 +27,32 @@ class Avocet(App):
             yield OptionList(id="raindrop_option_list")
 
     async def on_mount(self) -> None:
-        self.startup()
-
-    @work
-    async def startup(self):
-        # Check if the database exists
-        start_time = time.time()
         db_name = os.environ.get("DB_NAME", "avocet")
         db_path = f'{db_name}.sqlite'
+        is_initialized = True
+        if not os.path.exists(db_path):
+            is_initialized = False
+        self.engine = create_engine(f'sqlite:///{db_path}')
+        self.database_manager = DatabaseManager(self.engine)
+        self.ai = AI()
+        self.startup(is_initialized)
+
+    @work
+    async def startup(self, is_initialized):
+        # Check if the database exists
+        start_time = time.time()
         raindrop_api = RaindropAPI()
 
-        if not os.path.exists(db_path):
-            await self.initialize_db(db_path, raindrop_api)
-        else:
-            self.engine = create_engine(f'sqlite:///{db_path}')
-            self.database_manager = DatabaseManager(self.engine)
+        if not is_initialized:
+            await self.initialize_db(raindrop_api)
+            await self.add_text()
         self.query_one(ProgressBar).remove()
         self.query_one(Label).remove()
         self.initialize_view()
         end_time = time.time()
         log(f"Startup time: {start_time-end_time}")
 
-    async def initialize_db(self, db_path, raindrop_api):
-        self.engine = create_engine(f'sqlite:///{db_path}')
-        self.database_manager = DatabaseManager(self.engine)
+    async def initialize_db(self, raindrop_api):
         self.database_manager.create_tables()
         collection_data_list = await raindrop_api.get_collections()
         self.query_one(ProgressBar).update(total=len(collection_data_list))
@@ -55,6 +61,16 @@ class Avocet(App):
             raindrop_data_list = await raindrop_api.get_raindrops_by_collection_id(collection_data["_id"])
             self.database_manager.add_raindrops(raindrop_data_list, collection_data["_id"])
             self.query_one(ProgressBar).advance(1)
+
+    # @work(exclusive=True, thread=True)
+    async def add_text(self):
+        raindrops = self.database_manager.get_all_raindrops()
+        for raindrop in raindrops:
+            markdown = await self.ai.html_to_markdown(raindrop.link)
+            log(f"Markdown: {markdown}")
+            raindrop.full_text = markdown[0].page_content
+            await self.ai.initialize_vector_store(markdown)
+            self.database_manager.add_raindrop(raindrop)
 
     def initialize_view(self):
         collections = self.database_manager.get_collections()

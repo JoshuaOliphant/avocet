@@ -32,8 +32,14 @@ class DatabaseManager:
                                 link=raindrop_data['link'],
                                 created=datetime.strptime(raindrop_data['created'], "%Y-%m-%dT%H:%M:%S.%fZ"),
                                 last_update=datetime.strptime(raindrop_data['lastUpdate'], "%Y-%m-%dT%H:%M:%S.%fZ"),
-                                collection_id=collection_id)
+                                collection_id=collection_id,
+                                tags=raindrop_data["tags"])
             session.add(raindrop)
+        session.commit()
+
+    def add_raindrop(self, raindrop):
+        session = self.Session()
+        session.add(raindrop)
         session.commit()
 
     def get_collections(self):
@@ -50,3 +56,11 @@ class DatabaseManager:
         session = self.Session()
         raindrop = session.query(Raindrop).filter(Raindrop.id == raindrop_id).first()
         return raindrop
+
+    def get_all_raindrops(self):
+        session = self.Session()
+        return session.query(Raindrop).all()
+    
+    def get_all_raindrop_urls(self):
+        session = self.Session()
+        return session.query(Raindrop).with_entities(Raindrop.link).all()
