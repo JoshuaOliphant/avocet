@@ -138,3 +138,6 @@ avocet.sqlite
 
 # vs code
 .vscode
+
+# chroma
+docs/*

@@ -37,6 +37,11 @@ class DatabaseManager:
             session.add(raindrop)
         session.commit()
 
+    def add_raindrop(self, raindrop):
+        session = self.Session()
+        session.add(raindrop)
+        session.commit()
+
     def get_collections(self):
         session = self.Session()
         collections = session.query(Collection).all()

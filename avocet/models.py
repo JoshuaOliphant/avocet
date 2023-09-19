@@ -26,4 +26,5 @@ class Raindrop(Base):
     collection_id = Column(Integer, ForeignKey('collections.id'))
     tags = Column(JSON)
     # non-raindrop columns
-    text = Column(String)
+    full_text = Column(String)
+    summary = Column(String)

@@ -34,6 +34,7 @@ class Avocet(App):
             is_initialized = False
         self.engine = create_engine(f'sqlite:///{db_path}')
         self.database_manager = DatabaseManager(self.engine)
+        self.ai = AI()
         self.startup(is_initialized)
 
     @work
@@ -44,6 +45,7 @@ class Avocet(App):
 
         if not is_initialized:
             await self.initialize_db(raindrop_api)
+            await self.add_text()
         self.query_one(ProgressBar).remove()
         self.query_one(Label).remove()
         self.initialize_view()
@@ -60,12 +62,15 @@ class Avocet(App):
             self.database_manager.add_raindrops(raindrop_data_list, collection_data["_id"])
             self.query_one(ProgressBar).advance(1)
 
-    @work(exclusive=True, thread=True)
-    async def action_add_ai(self):
-        self.ai = AI()
-        url_tuples = self.database_manager.get_all_raindrop_urls()
-        url_strings = [url_tuple[0] for url_tuple in url_tuples]
-        await self.ai.train(url_strings)
+    # @work(exclusive=True, thread=True)
+    async def add_text(self):
+        raindrops = self.database_manager.get_all_raindrops()
+        for raindrop in raindrops:
+            markdown = await self.ai.html_to_markdown(raindrop.link)
+            log(f"Markdown: {markdown}")
+            raindrop.full_text = markdown[0].page_content
+            await self.ai.initialize_vector_store(markdown)
+            self.database_manager.add_raindrop(raindrop)
 
     def initialize_view(self):
         collections = self.database_manager.get_collections()
