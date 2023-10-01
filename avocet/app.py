@@ -49,8 +49,13 @@ class Avocet(App):
         raindrop_api = RaindropAPI()
 
         if not is_initialized:
+            log("Initializing...")
             await self.initialize_db(raindrop_api)
             await self.add_text()
+        else:
+            log("Updating...")
+            await self.update_db(raindrop_api)
+            await self.update_text()
 
         self.database_manager.update_last_update()
         self.query_one("#progress_bars").remove()
@@ -68,6 +73,19 @@ class Avocet(App):
             self.database_manager.add_raindrops(raindrop_data_list, collection_data["_id"])
             self.query_one("#database").advance(1)
 
+    async def update_db(self, raindrop_api):
+        last_update = self.database_manager.get_last_update().last_update
+        formatted_date = last_update.strftime("%Y-%m-%d")
+        collections = self.database_manager.get_collections()
+        self.query_one("#database").update(total=len(collections))
+        for collection in collections:
+            raindrops = await raindrop_api.get_raindrops_by_collection_id(
+                collection.id,
+                search=f"lastUpdate:{formatted_date}")
+            log(f"Raindrops to update: {raindrops}")
+            self.database_manager.add_raindrops(raindrops, collection.id)
+            self.query_one("#database").advance(1)
+
     async def add_text(self):
         raindrops = self.database_manager.get_all_raindrops()
         self.query_one("#summaries").update(total=len(raindrops))
@@ -78,6 +96,19 @@ class Avocet(App):
                 raindrop.summary = markdown[0]['article_summary']
             self.query_one("#summaries").advance(1)
         self.database_manager.update_raindrops(raindrops)
+
+    async def update_text(self):
+        last_update = self.database_manager.get_last_update()
+        updated_raindrops = self.database_manager.get_updated_raindrops(last_update.last_update)
+        log(f"Number of raindrops to update: {len(updated_raindrops)}")
+        self.query_one("#summaries").update(total=len(updated_raindrops))
+        for raindrop in updated_raindrops:
+            markdown = await self.ai.html_to_markdown(raindrop.link)
+            log(f"Markdown: {markdown}")
+            if markdown:
+                raindrop.summary = markdown[0]['article_summary']
+            self.query_one("#summaries").advance(1)
+        self.database_manager.update_raindrops(updated_raindrops)
 
     async def initialize_view(self):
         collections = self.database_manager.get_collections()
