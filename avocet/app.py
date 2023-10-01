@@ -1,9 +1,10 @@
 import os
 import time
+import webbrowser
 from textual import on, work, log
 from textual.app import App, ComposeResult
 from textual.containers import Center, VerticalScroll, Vertical
-from textual.widgets import OptionList, ProgressBar, Label, MarkdownViewer
+from textual.widgets import OptionList, ProgressBar, Label, MarkdownViewer, Header, Footer
 from textual.widgets.option_list import Option
 from sqlalchemy import create_engine
 from database_manager import DatabaseManager
@@ -14,10 +15,11 @@ class Avocet(App):
 
     CSS_PATH = "avocet.tcss"
     BINDINGS = [
-        ("a", "add_ai()", "Add AI")
+        ("o", "open_link()", "Open in browser")
     ]
 
     def compose(self) -> ComposeResult:
+        yield Header()
         with Vertical(id="progress_bars"):
             yield Label("Loading database...", id="database_label")
             yield ProgressBar(id="database", total=100)
@@ -28,6 +30,7 @@ class Avocet(App):
             yield OptionList(id="raindrop_option_list")
         with VerticalScroll():
             yield MarkdownViewer(id='markdown_viewer')
+        yield Footer()
 
     async def on_mount(self) -> None:
         db_name = os.environ.get("DB_NAME", "avocet")
@@ -101,13 +104,18 @@ class Avocet(App):
         option_list.clear_options()
         option_list.add_options(options)
 
-    @on(OptionList.OptionSelected, selector="#raindrop_option_list")
-    async def select_raidrop(self, event: OptionList.OptionSelected):
-        log("selected")
+    @on(OptionList.OptionHighlighted, selector="#raindrop_option_list")
+    async def highlight_raindrop(self, event: OptionList.OptionHighlighted):
         raindrop_id = event.option.id
         raindrop = self.database_manager.get_raindrop_by_raindrop_id(raindrop_id)
         markdown = self.query_one("Markdown")
         await markdown.update(raindrop.summary)
+
+    @on(OptionList.OptionSelected, selector="#raindrop_option_list")
+    async def select_raindrop(self, event: OptionList.OptionSelected):
+        raindrop_id = event.option.id
+        raindrop = self.database_manager.get_raindrop_by_raindrop_id(raindrop_id)
+        webbrowser.open(raindrop.link)
 
 
 if __name__ == "__main__":
