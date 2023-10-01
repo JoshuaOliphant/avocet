@@ -60,7 +60,12 @@ class DatabaseManager:
     def get_all_raindrops(self):
         session = self.Session()
         return session.query(Raindrop).all()
-    
+
     def get_all_raindrop_urls(self):
         session = self.Session()
         return session.query(Raindrop).with_entities(Raindrop.link).all()
+
+    def update_raindrops(self, raindrops):
+        session = self.Session()
+        session.add_all(raindrops)
+        session.commit()
