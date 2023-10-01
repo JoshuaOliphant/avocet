@@ -2,7 +2,7 @@ import os
 import time
 from textual import on, work, log
 from textual.app import App, ComposeResult
-from textual.containers import Center, VerticalScroll
+from textual.containers import Center, VerticalScroll, Vertical
 from textual.widgets import OptionList, ProgressBar, Label, MarkdownViewer
 from textual.widgets.option_list import Option
 from sqlalchemy import create_engine
@@ -18,9 +18,11 @@ class Avocet(App):
     ]
 
     def compose(self) -> ComposeResult:
-        with Center():
-            yield Label("Loading...")
-            yield ProgressBar(total=100)
+        with Vertical(id="progress_bars"):
+            yield Label("Loading database...", id="database_label")
+            yield ProgressBar(id="database", total=100)
+            yield Label("Getting summaries from OpenAI", id="summary_label")
+            yield ProgressBar(id="summaries", total=100)
         with Center():
             yield OptionList(id="collection_option_list")
             yield OptionList(id="raindrop_option_list")
@@ -40,15 +42,15 @@ class Avocet(App):
 
     @work
     async def startup(self, is_initialized):
-        # Check if the database exists
         start_time = time.time()
         raindrop_api = RaindropAPI()
 
         if not is_initialized:
             await self.initialize_db(raindrop_api)
             await self.add_text()
-        self.query_one(ProgressBar).remove()
-        self.query_one(Label).remove()
+
+        self.database_manager.update_last_update()
+        self.query_one("#progress_bars").remove()
         await self.initialize_view()
         end_time = time.time()
         log(f"Startup time: {start_time-end_time}")
@@ -56,20 +58,22 @@ class Avocet(App):
     async def initialize_db(self, raindrop_api):
         self.database_manager.create_tables()
         collection_data_list = await raindrop_api.get_collections()
-        self.query_one(ProgressBar).update(total=len(collection_data_list))
+        self.query_one("#database").update(total=len(collection_data_list))
         for collection_data in collection_data_list:
             self.database_manager.add_collection(collection_data)
             raindrop_data_list = await raindrop_api.get_raindrops_by_collection_id(collection_data["_id"])
             self.database_manager.add_raindrops(raindrop_data_list, collection_data["_id"])
-            self.query_one(ProgressBar).advance(1)
+            self.query_one("#database").advance(1)
 
     async def add_text(self):
         raindrops = self.database_manager.get_all_raindrops()
+        self.query_one("#summaries").update(total=len(raindrops))
         for raindrop in raindrops:
             markdown = await self.ai.html_to_markdown(raindrop.link)
             log(f"Markdown: {markdown}")
             if markdown:
                 raindrop.summary = markdown[0]['article_summary']
+            self.query_one("#summaries").advance(1)
         self.database_manager.update_raindrops(raindrops)
 
     async def initialize_view(self):
