@@ -27,3 +27,8 @@ class Raindrop(Base):
     tags = Column(JSON)
     # non-raindrop columns
     summary = Column(String)
+
+class Update(Base):
+    __tablename__ = "update"
+    id = Column(Integer, primary_key=True)
+    last_update = Column(DateTime)

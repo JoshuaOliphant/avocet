@@ -1,6 +1,7 @@
 from datetime import datetime
 from sqlalchemy.orm import sessionmaker
-from models import Collection, Base, Raindrop
+from models import Collection, Base, Raindrop, Update
+from textual import log
 
 class DatabaseManager:
     def __init__(self, engine):
@@ -65,7 +66,30 @@ class DatabaseManager:
         session = self.Session()
         return session.query(Raindrop).with_entities(Raindrop.link).all()
 
+    def get_updated_raindrops(self, updated_after):
+        session = self.Session()
+        raindrops = session.query(Raindrop).filter(Raindrop.last_update > updated_after).all()
+        return raindrops
+
     def update_raindrops(self, raindrops):
         session = self.Session()
         session.add_all(raindrops)
         session.commit()
+
+    def update_last_update(self):
+        session = self.Session()
+        update = session.query(Update).first()
+        if not update:
+            log(f"Setting update first time")
+            update = Update(last_update=datetime.now())
+            session.add(update)
+        else:
+            log(f"Updating last_update")
+            update.last_update = datetime.now()
+            session.add(update)
+        log(f"Committing update {update}")
+        session.commit()
+
+    def get_last_update(self):
+        session = self.Session()
+        return session.query(Update).first()
