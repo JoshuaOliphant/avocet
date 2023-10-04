@@ -2,14 +2,16 @@
 
 # Avocet
 
-Avocet is a TUI the accesses the [Raindrop API](https://developer.raindrop.io/). It is written in Python and uses the [Textual Framework](https://textual.textualize.io).
+Avocet is a TUI the accesses the [Raindrop API](https://developer.raindrop.io/). It is written in Python and uses the [Textual Framework](https://textual.textualize.io). It also summarizes each bookmark as it is loaded and displays the summary, and opens the bookmark link in the default browser.
 
 ## Requirements
+
 - Python 3
 - [Poetry](https://python-poetry.org/docs/)
 - [Just](https://github.com/casey/just)
 
 ## Getting Started
+
 1. Clone the repo
 1. Run `just install` or `poetry install` to install dependencies
 1. Set your Raindrop.io API token as the environment variable `RAINDROP`.
