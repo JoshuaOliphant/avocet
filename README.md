@@ -18,5 +18,6 @@ Avocet is a TUI the accesses the [Raindrop API](https://developer.raindrop.io/).
 1. Run `just run` or `poetry run avocet` to run the
 1. Tab between sections. Use the arrow keys to navigate within a section. Press enter in the collections section to view the bookmarks in that collection. Press enter on a bookmark to open it in your default browser. Press `ctrl-c` to quit.
 1. View the [justfile](./justfile) for more commands.
+1. Note: it can take a while to load the first time it is started, because it has to contact OpenAI to summarize each bookmark. Speeding this process up is on my Todo list.
 
 ![Screenshot](./media/Screenshot.png)
