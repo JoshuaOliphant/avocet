@@ -80,11 +80,11 @@ class DatabaseManager:
         session = self.Session()
         update = session.query(Update).first()
         if not update:
-            log(f"Setting update first time")
+            log("Setting update first time")
             update = Update(last_update=datetime.now())
             session.add(update)
         else:
-            log(f"Updating last_update")
+            log("Updating last_update")
             update.last_update = datetime.now()
             session.add(update)
         log(f"Committing update {update}")

@@ -1,5 +1,0 @@
-[account]
-api_key = "VQ4VPG8V9W2R"
-
-[app.Avocet]
-command = "just r"

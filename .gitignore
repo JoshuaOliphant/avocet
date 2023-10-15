@@ -141,3 +141,5 @@ avocet.sqlite
 
 # chroma
 docs/*
+
+ganglion.toml
