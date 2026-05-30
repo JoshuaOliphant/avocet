@@ -15,6 +15,15 @@ from textual.widgets import DataTable, Footer, Header, Label, ListItem, ListView
 from avocet.database_manager import DatabaseManager
 from avocet.models import Raindrop
 from avocet.raindrop_api import RaindropAPI
+from avocet.screens import (
+    AddBookmarkScreen,
+    AddResult,
+    ConfirmDeleteScreen,
+    EditBookmarkScreen,
+    EditResult,
+    SearchScreen,
+    TagFilterScreen,
+)
 from avocet.summary import ClaudeSummaryProvider, SummaryProvider
 
 CATPPUCCIN_MOCHA = Theme(
@@ -192,13 +201,47 @@ class Avocet(App):
         self.notify("Search wired up in Phase 4")
 
     def action_add(self) -> None:
-        self.notify("Add wired up in Phase 4")
+        if self._current_collection_id is None:
+            return
+
+        def on_close(result: AddResult | None) -> None:
+            if result is not None:
+                self._do_add(result)
+
+        self.push_screen(AddBookmarkScreen(self._current_collection_id), on_close)
+
+    @work(exclusive=True, group="crud")
+    async def _do_add(self, result: AddResult) -> None:
+        if self.api is None:
+            self.api = RaindropAPI()
+        item = await self.api.add_raindrop(result.link, result.collection_id, result.tags)
+        self.db.upsert_raindrops([item], result.collection_id)
+        self._populate_table(result.collection_id)
+        self.notify("Bookmark added")
 
     def action_edit(self) -> None:
         self.notify("Edit wired up in Phase 4")
 
     def action_delete(self) -> None:
-        self.notify("Delete wired up in Phase 4")
+        raindrop = self._selected_raindrop()
+        if raindrop is None:
+            return
+
+        def on_close(confirmed: bool) -> None:
+            if confirmed:
+                self._do_delete(raindrop.id)
+
+        self.push_screen(ConfirmDeleteScreen(raindrop.title or ""), on_close)
+
+    @work(exclusive=True, group="crud")
+    async def _do_delete(self, raindrop_id: int) -> None:
+        if self.api is None:
+            self.api = RaindropAPI()
+        await self.api.delete_raindrop(raindrop_id)
+        self.db.remove_raindrop(raindrop_id)
+        if self._current_collection_id is not None:
+            self._populate_table(self._current_collection_id)
+        self.notify("Bookmark deleted")
 
     def action_filter_tag(self) -> None:
         self.notify("Tag filter wired up in Phase 4")
