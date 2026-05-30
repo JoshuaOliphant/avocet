@@ -62,11 +62,41 @@ async def test_delete_removes_row_and_calls_api():
         assert app.db.get_raindrop(10) is None
 
 
-async def test_add_opens_modal():
+async def test_add_submits_and_persists():
     api = FakeAPI()
     app = Avocet(db=_seeded_db(), summary_provider=StubSummaryProvider(), api=api)
     async with app.run_test() as pilot:
         await pilot.pause()
         await pilot.press("a")
         await pilot.pause()
+        from textual.widgets import Button, Input
+
         assert isinstance(app.screen, AddBookmarkScreen)
+        app.screen.query_one("#link", Input).value = "https://new.example"
+        app.screen.query_one("#tags", Input).value = "py, tui"
+        app.screen.query_one("#confirm", Button).press()
+        await pilot.pause()
+        await app.workers.wait_for_complete()
+        await pilot.pause()
+        # API received the add with parsed tags
+        assert len(api.added) == 1
+        assert api.added[0]["link"] == "https://new.example"
+        # row persisted to the DB (FakeAPI returns _id 99)
+        assert app.db.get_raindrop(99) is not None
+
+
+async def test_open_link_opens_browser(monkeypatch):
+    opened = []
+    import avocet.app as app_module
+
+    monkeypatch.setattr(app_module.webbrowser, "open", lambda url: opened.append(url))
+    api = FakeAPI()
+    app = Avocet(db=_seeded_db(), summary_provider=StubSummaryProvider(), api=api)
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        from textual.widgets import DataTable
+
+        app.query_one("#bookmarks", DataTable).focus()
+        await pilot.press("o")
+        await pilot.pause()
+        assert opened == ["https://x"]
