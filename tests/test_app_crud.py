@@ -6,10 +6,11 @@ from avocet.app import Avocet
 from avocet.database_manager import DatabaseManager
 from avocet.screens import AddBookmarkScreen, ConfirmDeleteScreen
 from avocet.summary import StubSummaryProvider
+from tests.fakes import BaseFakeRaindrop
 
 
-class FakeAPI:
-    def __init__(self):
+class FakeAPI(BaseFakeRaindrop):
+    def __init__(self):  # noqa: D401
         self.deleted: list[int] = []
         self.added: list[dict] = []
 

@@ -6,9 +6,10 @@ from sqlalchemy.pool import StaticPool
 from avocet.app import Avocet
 from avocet.database_manager import DatabaseManager
 from avocet.summary import StubSummaryProvider
+from tests.fakes import BaseFakeRaindrop
 
 
-class FakeAPI:
+class FakeAPI(BaseFakeRaindrop):
     async def get_collections(self):
         return [{"_id": 0, "title": "All"}, {"_id": 1, "title": "Reading"}]
 

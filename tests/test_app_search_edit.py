@@ -6,9 +6,10 @@ from avocet.app import Avocet
 from avocet.database_manager import DatabaseManager
 from avocet.screens import EditBookmarkScreen
 from avocet.summary import StubSummaryProvider
+from tests.fakes import BaseFakeRaindrop
 
 
-class FakeAPI:
+class FakeAPI(BaseFakeRaindrop):
     def __init__(self):
         self.updated: list[tuple[int, dict]] = []
         self.searched: list[str] = []
