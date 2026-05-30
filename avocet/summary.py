@@ -6,6 +6,7 @@ import os
 from typing import Protocol
 
 import httpx
+from anthropic.types import TextBlock
 
 from avocet.models import Raindrop
 
@@ -68,8 +69,6 @@ class ClaudeSummaryProvider:
                 }
             ],
         )
-        from anthropic.types import TextBlock
-
         return "".join(
             block.text for block in message.content if isinstance(block, TextBlock)
         ).strip()

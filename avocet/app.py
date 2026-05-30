@@ -102,6 +102,8 @@ class Avocet(App):
 
     def watch_theme(self, theme_name: str) -> None:
         # Persist the selected theme so it is restored on next launch.
+        # The guard is needed because Textual's reactive machinery can call
+        # watch_theme before Avocet.__init__ has assigned self.db.
         if getattr(self, "db", None) is not None:
             self.db.set_setting("theme", theme_name)
 

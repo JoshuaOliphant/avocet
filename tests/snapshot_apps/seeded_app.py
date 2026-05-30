@@ -1,5 +1,5 @@
 # ABOUTME: A deterministic Avocet instance for snapshot tests (seeded DB, stub summaries).
-# ABOUTME: pytest-textual-snapshot runs this file as a standalone app for SVG capture.
+# ABOUTME: pytest-textual-snapshot imports this module, reads the top-level `app`, and takes an SVG.
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 

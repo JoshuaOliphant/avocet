@@ -1,4 +1,5 @@
 # ABOUTME: Interaction tests for add/delete wired through modals to the fake API + DB.
+# ABOUTME: Uses BaseFakeRaindrop to intercept API calls and asserts DB state after each flow.
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 

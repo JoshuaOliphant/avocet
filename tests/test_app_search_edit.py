@@ -1,4 +1,5 @@
 # ABOUTME: Interaction tests for edit, search, and tag filter flows.
+# ABOUTME: Uses BaseFakeRaindrop to intercept edit/search calls and asserts DB and table state.
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 

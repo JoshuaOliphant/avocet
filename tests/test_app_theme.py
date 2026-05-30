@@ -1,4 +1,5 @@
 # ABOUTME: Verifies theme changes persist to the DB settings table.
+# ABOUTME: Drives a theme change via Pilot and reads the DB settings table to confirm persistence.
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 
