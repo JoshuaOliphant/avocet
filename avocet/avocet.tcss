@@ -1,5 +1,29 @@
-Center {
-    margin-top: 1;
-    margin-bottom: 1;
-    layout: horizontal;
+/* ABOUTME: Styling for the Avocet three-pane layout. */
+/* ABOUTME: Collections sidebar, bookmarks table, and detail panel. */
+#collections {
+    width: 28;
+    border-right: solid $panel;
+}
+
+#main {
+    width: 1fr;
+}
+
+#bookmarks {
+    height: 2fr;
+}
+
+#detail {
+    height: 1fr;
+    border-top: solid $panel;
+    padding: 0 1;
+}
+
+#detail-title {
+    text-style: bold;
+    color: $accent;
+}
+
+#detail-meta {
+    color: $secondary;
 }

@@ -1,154 +1,195 @@
+# ABOUTME: Avocet — a Textual TUI for browsing Raindrop.io bookmarks (three-pane layout).
+# ABOUTME: The local DB is the source of truth; summaries are generated lazily on row selection.
+from __future__ import annotations
+
 import os
-import time
 import webbrowser
-from textual import on, work, log
-from textual.app import App, ComposeResult
-from textual.containers import Center, VerticalScroll, Vertical
-from textual.widgets import OptionList, ProgressBar, Label, MarkdownViewer, Header, Footer
-from textual.widgets.option_list import Option
+
 from sqlalchemy import create_engine
-from database_manager import DatabaseManager
-from raindrop_api import RaindropAPI
-from ai import AI
+from textual import on, work
+from textual.app import App, ComposeResult
+from textual.containers import Horizontal, Vertical
+from textual.theme import Theme
+from textual.widgets import DataTable, Footer, Header, Label, ListItem, ListView, Static
+
+from avocet.database_manager import DatabaseManager
+from avocet.models import Raindrop
+from avocet.raindrop_api import RaindropAPI
+from avocet.summary import ClaudeSummaryProvider, SummaryProvider
+
+CATPPUCCIN_MOCHA = Theme(
+    name="catppuccin-mocha",
+    primary="#89b4fa",
+    secondary="#cba6f7",
+    accent="#f5c2e7",
+    foreground="#cdd6f4",
+    background="#1e1e2e",
+    surface="#313244",
+    panel="#45475a",
+    success="#a6e3a1",
+    warning="#f9e2af",
+    error="#f38ba8",
+    dark=True,
+)
+
+
+def _default_db() -> DatabaseManager:
+    from pathlib import Path
+
+    from platformdirs import user_cache_dir
+
+    cache_dir = Path(user_cache_dir("avocet"))
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    engine = create_engine(f"sqlite:///{cache_dir / 'avocet.sqlite'}")
+    manager = DatabaseManager(engine=engine)
+    manager.create_tables()
+    return manager
+
 
 class Avocet(App):
-
     CSS_PATH = "avocet.tcss"
     BINDINGS = [
-        ("o", "open_link()", "Open in browser")
+        ("o", "open_link", "Open in browser"),
+        ("r", "refresh", "Refresh"),
+        ("/", "search", "Search"),
+        ("a", "add", "Add"),
+        ("e", "edit", "Edit"),
+        ("d", "delete", "Delete"),
+        ("f", "filter_tag", "Filter tag"),
     ]
+
+    def __init__(
+        self,
+        db: DatabaseManager | None = None,
+        summary_provider: SummaryProvider | None = None,
+        api: RaindropAPI | None = None,
+    ) -> None:
+        super().__init__()
+        self.db = db or _default_db()
+        self.summary_provider = summary_provider or ClaudeSummaryProvider()
+        self.api = api
+        self._row_to_raindrop: dict[str, int] = {}
+        self._current_collection_id: int | None = None
 
     def compose(self) -> ComposeResult:
         yield Header()
-        with Vertical(id="progress_bars"):
-            yield Label("Loading database...", id="database_label")
-            yield ProgressBar(id="database", total=100)
-            yield Label("Getting summaries from OpenAI", id="summary_label")
-            yield ProgressBar(id="summaries", total=100)
-        with Center():
-            yield OptionList(id="collection_option_list")
-            yield OptionList(id="raindrop_option_list")
-        with VerticalScroll():
-            yield MarkdownViewer(id='markdown_viewer')
+        with Horizontal():
+            yield ListView(id="collections")
+            with Vertical(id="main"):
+                yield DataTable(id="bookmarks", cursor_type="row")
+                with Vertical(id="detail"):
+                    yield Label("", id="detail-title")
+                    yield Static("", id="detail-meta")
+                    yield Static("", id="detail-summary")
         yield Footer()
 
-    async def on_mount(self) -> None:
-        db_name = os.environ.get("DB_NAME", "avocet")
-        db_path = f'{db_name}.sqlite'
-        is_initialized = True
-        if not os.path.exists(db_path):
-            is_initialized = False
-        self.engine = create_engine(f'sqlite:///{db_path}')
-        self.database_manager = DatabaseManager(self.engine)
-        self.ai = AI()
-        self.startup(is_initialized)
+    def on_mount(self) -> None:
+        self.register_theme(CATPPUCCIN_MOCHA)
+        self.theme = self.db.get_setting("theme") or "catppuccin-mocha"
+        table = self.query_one("#bookmarks", DataTable)
+        table.add_column("Title", key="title")
+        table.add_column("Tags", key="tags")
+        table.add_column("Created", key="created")
+        self._load_collections()
 
-    @work
-    async def startup(self, is_initialized):
-        start_time = time.time()
-        raindrop_api = RaindropAPI()
-
-        if not is_initialized:
-            log("Initializing...")
-            await self.initialize_db(raindrop_api)
-            await self.add_text()
-        else:
-            log("Updating...")
-            await self.update_db(raindrop_api)
-            await self.update_text()
-
-        self.database_manager.update_last_update()
-        self.query_one("#progress_bars").remove()
-        await self.initialize_view()
-        end_time = time.time()
-        log(f"Startup time: {start_time-end_time}")
-
-    async def initialize_db(self, raindrop_api):
-        self.database_manager.create_tables()
-        collection_data_list = await raindrop_api.get_collections()
-        self.query_one("#database").update(total=len(collection_data_list))
-        for collection_data in collection_data_list:
-            self.database_manager.add_collection(collection_data)
-            raindrop_data_list = await raindrop_api.get_raindrops_by_collection_id(collection_data["_id"])
-            self.database_manager.add_raindrops(raindrop_data_list, collection_data["_id"])
-            self.query_one("#database").advance(1)
-
-    async def update_db(self, raindrop_api):
-        last_update = self.database_manager.get_last_update().last_update
-        formatted_date = last_update.strftime("%Y-%m-%d")
-        collections = self.database_manager.get_collections()
-        self.query_one("#database").update(total=len(collections))
+    def _load_collections(self) -> None:
+        listview = self.query_one("#collections", ListView)
+        listview.clear()
+        collections = self.db.get_collections()
         for collection in collections:
-            raindrops = await raindrop_api.get_raindrops_by_collection_id(
-                collection.id,
-                search=f"lastUpdate:{formatted_date}")
-            log(f"Raindrops to update: {raindrops}")
-            self.database_manager.add_raindrops(raindrops, collection.id)
-            self.query_one("#database").advance(1)
-
-    async def add_text(self):
-        raindrops = self.database_manager.get_all_raindrops()
-        self.query_one("#summaries").update(total=len(raindrops))
-        for raindrop in raindrops:
-            markdown = await self.ai.html_to_markdown(raindrop.link)
-            log(f"Markdown: {markdown}")
-            if markdown:
-                raindrop.summary = markdown[0]['article_summary']
-            self.query_one("#summaries").advance(1)
-        self.database_manager.update_raindrops(raindrops)
-
-    async def update_text(self):
-        last_update = self.database_manager.get_last_update()
-        updated_raindrops = self.database_manager.get_updated_raindrops(last_update.last_update)
-        log(f"Number of raindrops to update: {len(updated_raindrops)}")
-        self.query_one("#summaries").update(total=len(updated_raindrops))
-        for raindrop in updated_raindrops:
-            markdown = await self.ai.html_to_markdown(raindrop.link)
-            log(f"Markdown: {markdown}")
-            if markdown:
-                raindrop.summary = markdown[0]['article_summary']
-            self.query_one("#summaries").advance(1)
-        self.database_manager.update_raindrops(updated_raindrops)
-
-    async def initialize_view(self):
-        collections = self.database_manager.get_collections()
-        for collection in collections:
-            collection_options = [Option(prompt=collection.title, id=collection.id)]
-            collection_option_list = self.query_one("#collection_option_list")
-            collection_option_list.add_options(collection_options)
+            item = ListItem(Label(collection.title or "(untitled)"))
+            item.collection_id = collection.id  # type: ignore[attr-defined]
+            listview.append(item)
         if collections:
-            raindrops = self.database_manager.get_raindrops_by_collection_id(collections[0].id)
+            self._populate_table(collections[0].id)
+
+    def _populate_table(self, collection_id: int) -> None:
+        self._current_collection_id = collection_id
+        table = self.query_one("#bookmarks", DataTable)
+        table.clear()
+        self._row_to_raindrop.clear()
+        for raindrop in self.db.get_raindrops_by_collection_id(collection_id):
+            row_key = str(raindrop.id)
+            created = raindrop.created.strftime("%Y-%m-%d") if raindrop.created else ""
+            tags = " ".join(f"#{t}" for t in (raindrop.tags or []))
+            table.add_row(raindrop.title or "", tags, created, key=row_key)
+            self._row_to_raindrop[row_key] = raindrop.id
+
+    @on(ListView.Selected, "#collections")
+    def _collection_selected(self, event: ListView.Selected) -> None:
+        collection_id = getattr(event.item, "collection_id", None)
+        if collection_id is not None:
+            self._populate_table(collection_id)
+
+    @on(DataTable.RowSelected, "#bookmarks")
+    def _row_selected(self, event: DataTable.RowSelected) -> None:
+        raindrop_id = self._row_to_raindrop.get(str(event.row_key.value))
+        if raindrop_id is not None:
+            self._show_detail(raindrop_id)
+
+    def _show_detail(self, raindrop_id: int) -> None:
+        raindrop = self.db.get_raindrop(raindrop_id)
+        if raindrop is None:
+            return
+        self.query_one("#detail-title", Label).update(raindrop.title or "")
+        tags = " ".join(f"#{t}" for t in (raindrop.tags or []))
+        self.query_one("#detail-meta", Static).update(f"{tags}  ·  {raindrop.link or ''}")
+        if raindrop.summary:
+            self.query_one("#detail-summary", Static).update(raindrop.summary)
         else:
-            raindrops = []
-        raindrop_options = [Option(prompt=raindrop.title, id=raindrop.id) for raindrop in raindrops]
-        raindrop_option_list = self.query_one("#raindrop_option_list")
-        raindrop_option_list.add_options(raindrop_options)
-        markdown_viewer = self.query_one("Markdown")
-        await markdown_viewer.update(raindrops[0].summary)
+            self.query_one("#detail-summary", Static).update("Generating summary…")
+            self._generate_summary(raindrop_id)
 
-    @on(OptionList.OptionSelected, selector="#collection_option_list")
-    def select_collection(self, event: OptionList.OptionSelected):
-        collection_id = event.option.id
-        raindrops = self.database_manager.get_raindrops_by_collection_id(collection_id)
-        options = [Option(prompt=raindrop.title, id=raindrop.id) for raindrop in raindrops]
-        option_list = self.query_one("#raindrop_option_list")
-        option_list.clear_options()
-        option_list.add_options(options)
+    @work(exclusive=True)
+    async def _generate_summary(self, raindrop_id: int) -> None:
+        raindrop = self.db.get_raindrop(raindrop_id)
+        if raindrop is None:
+            return
+        summary = await self.summary_provider.summarize(raindrop)
+        self.db.set_summary(raindrop_id, summary)
+        table = self.query_one("#bookmarks", DataTable)
+        if table.row_count:
+            cell_key = table.coordinate_to_cell_key(table.cursor_coordinate)
+            if str(cell_key.row_key.value) == str(raindrop_id):
+                self.query_one("#detail-summary", Static).update(summary)
 
-    @on(OptionList.OptionHighlighted, selector="#raindrop_option_list")
-    async def highlight_raindrop(self, event: OptionList.OptionHighlighted):
-        raindrop_id = event.option.id
-        raindrop = self.database_manager.get_raindrop_by_raindrop_id(raindrop_id)
-        markdown = self.query_one("Markdown")
-        await markdown.update(raindrop.summary)
+    def _selected_raindrop(self) -> Raindrop | None:
+        table = self.query_one("#bookmarks", DataTable)
+        if table.row_count == 0:
+            return None
+        cell_key = table.coordinate_to_cell_key(table.cursor_coordinate)
+        raindrop_id = self._row_to_raindrop.get(str(cell_key.row_key.value))
+        return self.db.get_raindrop(raindrop_id) if raindrop_id is not None else None
 
-    @on(OptionList.OptionSelected, selector="#raindrop_option_list")
-    async def select_raindrop(self, event: OptionList.OptionSelected):
-        raindrop_id = event.option.id
-        raindrop = self.database_manager.get_raindrop_by_raindrop_id(raindrop_id)
-        webbrowser.open(raindrop.link)
+    def action_open_link(self) -> None:
+        raindrop = self._selected_raindrop()
+        if raindrop and raindrop.link:
+            webbrowser.open(raindrop.link)
+
+    def action_refresh(self) -> None:
+        self.notify("Refresh wired up in Phase 4")
+
+    def action_search(self) -> None:
+        self.notify("Search wired up in Phase 4")
+
+    def action_add(self) -> None:
+        self.notify("Add wired up in Phase 4")
+
+    def action_edit(self) -> None:
+        self.notify("Edit wired up in Phase 4")
+
+    def action_delete(self) -> None:
+        self.notify("Delete wired up in Phase 4")
+
+    def action_filter_tag(self) -> None:
+        self.notify("Tag filter wired up in Phase 4")
+
+
+def main() -> None:
+    if "RAINDROP" not in os.environ:
+        raise SystemExit("Set the RAINDROP environment variable to your Raindrop.io API token.")
+    Avocet().run()
 
 
 if __name__ == "__main__":
-    avocet = Avocet()
-    avocet.run()
+    main()
