@@ -36,7 +36,7 @@ def app():
 
 
 async def test_collections_listed(app):
-    async with app.run_test() as pilot:
+    async with app.run_test():
         from textual.widgets import ListView
 
         listview = app.query_one("#collections", ListView)

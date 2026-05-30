@@ -4,7 +4,7 @@ from sqlalchemy.pool import StaticPool
 
 from avocet.app import Avocet
 from avocet.database_manager import DatabaseManager
-from avocet.screens import EditBookmarkScreen, SearchScreen, TagFilterScreen
+from avocet.screens import EditBookmarkScreen
 from avocet.summary import StubSummaryProvider
 
 

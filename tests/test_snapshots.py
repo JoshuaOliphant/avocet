@@ -18,7 +18,6 @@ def test_detail_with_summary(snap_compare):
     # Select Python collection, tab to bookmarks table, enter to select first row,
     # then wait for the StubSummaryProvider worker to write the summary.
     async def navigate_and_wait(pilot):
-        from textual.widgets import DataTable, ListView
 
         await pilot.press(*_SELECT_PYTHON)
         await pilot.pause()

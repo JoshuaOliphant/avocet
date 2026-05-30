@@ -4,10 +4,9 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from models import Base, Collection, Raindrop, Update
 from sqlalchemy import Engine, select
 from sqlalchemy.orm import Mapped, Session, mapped_column, sessionmaker
-
-from models import Base, Collection, Raindrop, Update
 
 _RAINDROP_TS = "%Y-%m-%dT%H:%M:%S.%fZ"
 

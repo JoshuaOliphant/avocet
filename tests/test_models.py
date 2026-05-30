@@ -3,7 +3,7 @@
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.pool import StaticPool
 
-from avocet.models import Base, Collection, Raindrop, Update
+from avocet.models import Base, Raindrop
 
 
 def test_tables_create():

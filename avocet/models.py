@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import ForeignKey, JSON
+from sqlalchemy import JSON, ForeignKey
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -23,7 +23,7 @@ class Collection(Base):
     created: Mapped[datetime | None] = mapped_column(default=None)
     last_update: Mapped[datetime | None] = mapped_column(default=None)
 
-    raindrops: Mapped[list["Raindrop"]] = relationship(
+    raindrops: Mapped[list[Raindrop]] = relationship(
         back_populates="collection", cascade="all, delete-orphan"
     )
 
@@ -44,7 +44,7 @@ class Raindrop(Base):
     tags: Mapped[list[str] | None] = mapped_column(JSON, default=None)
     summary: Mapped[str | None] = mapped_column(default=None)
 
-    collection: Mapped["Collection | None"] = relationship(back_populates="raindrops")
+    collection: Mapped[Collection | None] = relationship(back_populates="raindrops")
 
 
 class Update(Base):
