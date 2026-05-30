@@ -6,7 +6,8 @@ import os
 from typing import Protocol
 
 import httpx
-from models import Raindrop
+
+from avocet.models import Raindrop
 
 CLAUDE_MODEL = "claude-haiku-4-5"
 _SYSTEM_PROMPT = (

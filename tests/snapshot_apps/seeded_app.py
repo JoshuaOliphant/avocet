@@ -1,12 +1,5 @@
 # ABOUTME: A deterministic Avocet instance for snapshot tests (seeded DB, stub summaries).
 # ABOUTME: pytest-textual-snapshot runs this file as a standalone app for SVG capture.
-import sys
-from pathlib import Path
-
-_root = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(_root))
-sys.path.insert(0, str(_root / "avocet"))
-
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 
