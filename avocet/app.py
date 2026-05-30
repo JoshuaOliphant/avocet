@@ -117,16 +117,19 @@ class Avocet(App):
         if collections:
             self._populate_table(collections[0].id)
 
-    def _populate_table(self, collection_id: int) -> None:
+    def _populate_table(self, collection_id: int, tag: str | None = None) -> None:
         self._current_collection_id = collection_id
         table = self.query_one("#bookmarks", DataTable)
         table.clear()
         self._row_to_raindrop.clear()
-        for raindrop in self.db.get_raindrops_by_collection_id(collection_id):
+        rows = self.db.get_raindrops_by_collection_id(collection_id)
+        if tag:
+            rows = [r for r in rows if tag in (r.tags or [])]
+        for raindrop in rows:
             row_key = str(raindrop.id)
             created = raindrop.created.strftime("%Y-%m-%d") if raindrop.created else ""
-            tags = " ".join(f"#{t}" for t in (raindrop.tags or []))
-            table.add_row(raindrop.title or "", tags, created, key=row_key)
+            tags_str = " ".join(f"#{t}" for t in (raindrop.tags or []))
+            table.add_row(raindrop.title or "", tags_str, created, key=row_key)
             self._row_to_raindrop[row_key] = raindrop.id
 
     @on(ListView.Selected, "#collections")
@@ -198,7 +201,19 @@ class Avocet(App):
         self.notify("Synced from Raindrop.io")
 
     def action_search(self) -> None:
-        self.notify("Search wired up in Phase 4")
+        def on_close(query: str | None) -> None:
+            if query and self._current_collection_id is not None:
+                self._do_search(self._current_collection_id, query)
+
+        self.push_screen(SearchScreen(), on_close)
+
+    @work(exclusive=True, group="search")
+    async def _do_search(self, collection_id: int, query: str) -> None:
+        if self.api is None:
+            self.api = RaindropAPI()
+        items = await self.api.get_raindrops_by_collection_id(collection_id, search=query)
+        self.db.upsert_raindrops(items, collection_id)
+        self._populate_table(collection_id)
 
     def action_add(self) -> None:
         if self._current_collection_id is None:
@@ -220,7 +235,29 @@ class Avocet(App):
         self.notify("Bookmark added")
 
     def action_edit(self) -> None:
-        self.notify("Edit wired up in Phase 4")
+        raindrop = self._selected_raindrop()
+        if raindrop is None:
+            return
+
+        def on_close(result: EditResult | None) -> None:
+            if result is not None:
+                self._do_edit(result)
+
+        self.push_screen(
+            EditBookmarkScreen(raindrop.id, raindrop.title or "", raindrop.tags or []), on_close
+        )
+
+    @work(exclusive=True, group="crud")
+    async def _do_edit(self, result: EditResult) -> None:
+        if self.api is None:
+            self.api = RaindropAPI()
+        item = await self.api.update_raindrop(
+            result.raindrop_id, {"title": result.title, "tags": result.tags}
+        )
+        if self._current_collection_id is not None:
+            self.db.upsert_raindrops([item], self._current_collection_id)
+            self._populate_table(self._current_collection_id)
+        self.notify("Bookmark updated")
 
     def action_delete(self) -> None:
         raindrop = self._selected_raindrop()
@@ -244,7 +281,16 @@ class Avocet(App):
         self.notify("Bookmark deleted")
 
     def action_filter_tag(self) -> None:
-        self.notify("Tag filter wired up in Phase 4")
+        def on_close(tag: str | None) -> None:
+            if tag is not None:
+                self.apply_tag_filter(tag)
+
+        self.push_screen(TagFilterScreen(), on_close)
+
+    def apply_tag_filter(self, tag: str) -> None:
+        if self._current_collection_id is None:
+            return
+        self._populate_table(self._current_collection_id, tag=tag)
 
 
 def main() -> None:
