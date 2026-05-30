@@ -87,3 +87,28 @@ def test_set_and_get_setting(db):
     assert db.get_setting("missing") is None
     db.set_setting("theme", "catppuccin-mocha")
     assert db.get_setting("theme") == "catppuccin-mocha"
+
+
+def test_get_all_raindrops_spans_collections(db):
+    # The virtual "All" view reads every raindrop regardless of collection.
+    db.upsert_collection(_collection(1, "Reading"))
+    db.upsert_collection(_collection(2, "Work"))
+    db.upsert_raindrops([_raindrop(10, 1)], collection_id=1)
+    db.upsert_raindrops([_raindrop(20, 2)], collection_id=2)
+    assert {r.id for r in db.get_all_raindrops()} == {10, 20}
+
+
+def test_upsert_uses_item_real_collection_not_fallback(db):
+    # A raindrop fetched via an aggregate view (fallback 0) must still be stored
+    # under its true collection from the payload — never clobbered to 0.
+    db.upsert_collection(_collection(7, "Real"))
+    item = {"_id": 30, "title": "x", "tags": [], "collection": {"$id": 7}}
+    db.upsert_raindrops([item], collection_id=0)
+    assert db.get_raindrop(30).collection_id == 7
+    assert db.get_raindrops_by_collection_id(0) == []
+
+
+def test_upsert_falls_back_to_passed_collection_when_payload_omits_it(db):
+    db.upsert_collection(_collection(1, "Reading"))
+    db.upsert_raindrops([{"_id": 40, "title": "y", "tags": []}], collection_id=1)
+    assert db.get_raindrop(40).collection_id == 1

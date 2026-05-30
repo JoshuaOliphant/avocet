@@ -26,6 +26,10 @@ from avocet.screens import (
 )
 from avocet.summary import ClaudeSummaryProvider, SummaryProvider
 
+# The synthetic "All" collection (id 0) is a virtual view over every bookmark.
+# It is never stored as a real collection or used as a raindrop's collection_id.
+ALL_COLLECTION_ID = 0
+
 CATPPUCCIN_MOCHA = Theme(
     name="catppuccin-mocha",
     primary="#89b4fa",
@@ -119,18 +123,20 @@ class Avocet(App):
     def _load_collections(self) -> None:
         listview = self.query_one("#collections", ListView)
         listview.clear()
-        collections = self.db.get_collections()
-        for collection in collections:
+        listview.append(CollectionItem(ALL_COLLECTION_ID, "All"))
+        for collection in self.db.get_collections():
             listview.append(CollectionItem(collection.id, collection.title or "(untitled)"))
-        if collections:
-            self._populate_table(collections[0].id)
+        self._populate_table(ALL_COLLECTION_ID)
 
     def _populate_table(self, collection_id: int, tag: str | None = None) -> None:
         self._current_collection_id = collection_id
         table = self.query_one("#bookmarks", DataTable)
         table.clear()
         self._row_to_raindrop.clear()
-        rows = self.db.get_raindrops_by_collection_id(collection_id)
+        if collection_id == ALL_COLLECTION_ID:
+            rows = self.db.get_all_raindrops()
+        else:
+            rows = self.db.get_raindrops_by_collection_id(collection_id)
         if tag:
             rows = [r for r in rows if tag in r.tags]
         for raindrop in rows:
@@ -205,7 +211,9 @@ class Avocet(App):
                 self.api = RaindropAPI()
             collections = await self.api.get_collections()
             for collection in collections:
-                if collection["_id"] in (0, -1):
+                # Skip the synthetic "All" (0) and "Unsorted" (-1) system views —
+                # they are not real collections and must never own a raindrop.
+                if collection["_id"] in (ALL_COLLECTION_ID, -1):
                     continue
                 self.db.upsert_collection(collection)
                 items = await self.api.get_raindrops_by_collection_id(collection["_id"])

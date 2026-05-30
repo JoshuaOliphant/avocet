@@ -14,7 +14,6 @@ def build_app() -> Avocet:
     )
     db = DatabaseManager(engine=engine)
     db.create_tables()
-    db.upsert_collection({"_id": 0, "title": "All"})
     db.upsert_collection({"_id": 1, "title": "Python"})
     db.upsert_raindrops(
         [

@@ -21,6 +21,18 @@ def _parse_ts(value: str | None) -> datetime | None:
         return None
 
 
+def _item_collection_id(data: dict, fallback: int) -> int:
+    # A raindrop's true collection comes from its own payload (`collection.$id`),
+    # so a bookmark is always stored under its real collection even when fetched
+    # via an aggregate view like the synthetic "All". Fall back to the caller's id
+    # only when the payload omits it.
+    collection = data.get("collection") or {}
+    cid = collection.get("$id")
+    if cid is None:
+        cid = data.get("collectionId")
+    return cid if cid is not None else fallback
+
+
 class DatabaseManager:
     def __init__(self, engine: Engine) -> None:
         self.engine = engine
@@ -54,7 +66,7 @@ class DatabaseManager:
                 raindrop.link = data.get("link")
                 raindrop.created = _parse_ts(data.get("created"))
                 raindrop.last_update = _parse_ts(data.get("lastUpdate"))
-                raindrop.collection_id = collection_id
+                raindrop.collection_id = _item_collection_id(data, collection_id)
                 raindrop.tags = data.get("tags") or []
                 raindrop.summary = cached_summary  # never clobber a cached summary
                 session.merge(raindrop)
@@ -68,6 +80,11 @@ class DatabaseManager:
         with self.Session() as session:
             stmt = select(Raindrop).where(Raindrop.collection_id == collection_id)
             return list(session.scalars(stmt.order_by(Raindrop.created.desc())))
+
+    def get_all_raindrops(self) -> list[Raindrop]:
+        with self.Session() as session:
+            stmt = select(Raindrop).order_by(Raindrop.created.desc())
+            return list(session.scalars(stmt))
 
     def get_raindrop(self, raindrop_id: int) -> Raindrop | None:
         with self.Session() as session:
