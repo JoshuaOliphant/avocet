@@ -41,14 +41,14 @@ class Raindrop(Base):
     collection_id: Mapped[int | None] = mapped_column(
         ForeignKey("collections.id"), default=None
     )
-    tags: Mapped[list[str] | None] = mapped_column(JSON, default=None)
+    tags: Mapped[list[str]] = mapped_column(JSON, default=list)
     summary: Mapped[str | None] = mapped_column(default=None)
 
     collection: Mapped[Collection | None] = relationship(back_populates="raindrops")
 
 
-class Update(Base):
-    __tablename__ = "update"
+class Setting(Base):
+    __tablename__ = "settings"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    last_update: Mapped[datetime | None] = mapped_column(default=None)
+    key: Mapped[str] = mapped_column(primary_key=True)
+    value: Mapped[str | None] = mapped_column(default=None)

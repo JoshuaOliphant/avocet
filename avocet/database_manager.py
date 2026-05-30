@@ -5,9 +5,9 @@ from __future__ import annotations
 from datetime import datetime
 
 from sqlalchemy import Engine, select
-from sqlalchemy.orm import Mapped, Session, mapped_column, sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 
-from avocet.models import Base, Collection, Raindrop, Update
+from avocet.models import Base, Collection, Raindrop, Setting
 
 _RAINDROP_TS = "%Y-%m-%dT%H:%M:%S.%fZ"
 
@@ -19,13 +19,6 @@ def _parse_ts(value: str | None) -> datetime | None:
         return datetime.strptime(value, _RAINDROP_TS)
     except ValueError:
         return None
-
-
-class Setting(Base):
-    __tablename__ = "settings"
-
-    key: Mapped[str] = mapped_column(primary_key=True)
-    value: Mapped[str | None] = mapped_column(default=None)
 
 
 class DatabaseManager:
@@ -62,7 +55,7 @@ class DatabaseManager:
                 raindrop.created = _parse_ts(data.get("created"))
                 raindrop.last_update = _parse_ts(data.get("lastUpdate"))
                 raindrop.collection_id = collection_id
-                raindrop.tags = data.get("tags")
+                raindrop.tags = data.get("tags") or []
                 raindrop.summary = cached_summary  # never clobber a cached summary
                 session.merge(raindrop)
             session.commit()
@@ -104,14 +97,3 @@ class DatabaseManager:
             session.merge(Setting(key=key, value=value))
             session.commit()
 
-    def touch_last_update(self) -> None:
-        with self.Session() as session:
-            update = session.get(Update, 1) or Update(id=1)
-            update.last_update = datetime.now()
-            session.merge(update)
-            session.commit()
-
-    def get_last_update(self) -> datetime | None:
-        with self.Session() as session:
-            update = session.get(Update, 1)
-            return update.last_update if update else None

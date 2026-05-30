@@ -130,11 +130,11 @@ class Avocet(App):
         self._row_to_raindrop.clear()
         rows = self.db.get_raindrops_by_collection_id(collection_id)
         if tag:
-            rows = [r for r in rows if tag in (r.tags or [])]
+            rows = [r for r in rows if tag in r.tags]
         for raindrop in rows:
             row_key = str(raindrop.id)
             created = raindrop.created.strftime("%Y-%m-%d") if raindrop.created else ""
-            tags_str = " ".join(f"#{t}" for t in (raindrop.tags or []))
+            tags_str = " ".join(f"#{t}" for t in raindrop.tags)
             table.add_row(raindrop.title or "", tags_str, created, key=row_key)
             self._row_to_raindrop[row_key] = raindrop.id
 
@@ -154,7 +154,7 @@ class Avocet(App):
         if raindrop is None:
             return
         self.query_one("#detail-title", Label).update(raindrop.title or "")
-        tags = " ".join(f"#{t}" for t in (raindrop.tags or []))
+        tags = " ".join(f"#{t}" for t in raindrop.tags)
         self.query_one("#detail-meta", Static).update(f"{tags}  ·  {raindrop.link or ''}")
         if raindrop.summary:
             self.query_one("#detail-summary", Static).update(raindrop.summary)
@@ -208,7 +208,6 @@ class Avocet(App):
                 self.db.upsert_collection(collection)
                 items = await self.api.get_raindrops_by_collection_id(collection["_id"])
                 self.db.upsert_raindrops(items, collection["_id"])
-            self.db.touch_last_update()
             self._load_collections()
             self.notify("Synced from Raindrop.io")
         except Exception as exc:  # noqa: BLE001 — surface any failure to the user
@@ -265,7 +264,7 @@ class Avocet(App):
                 self._do_edit(result)
 
         self.push_screen(
-            EditBookmarkScreen(raindrop.id, raindrop.title or "", raindrop.tags or []), on_close
+            EditBookmarkScreen(raindrop.id, raindrop.title or "", raindrop.tags), on_close
         )
 
     @work(exclusive=True, group="crud")

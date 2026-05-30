@@ -87,9 +87,3 @@ def test_set_and_get_setting(db):
     assert db.get_setting("missing") is None
     db.set_setting("theme", "catppuccin-mocha")
     assert db.get_setting("theme") == "catppuccin-mocha"
-
-
-def test_touch_and_get_last_update(db):
-    assert db.get_last_update() is None
-    db.touch_last_update()
-    assert db.get_last_update() is not None

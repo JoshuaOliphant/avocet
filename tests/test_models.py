@@ -3,7 +3,7 @@
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.pool import StaticPool
 
-from avocet.models import Base, Collection, Raindrop
+from avocet.models import Base, Collection, Raindrop, Setting
 
 
 def test_tables_create():
@@ -12,7 +12,7 @@ def test_tables_create():
     )
     Base.metadata.create_all(engine)
     names = set(inspect(engine).get_table_names())
-    assert {"collections", "raindrops", "update"} <= names
+    assert {"collections", "raindrops", "settings"} <= names
 
 
 def test_raindrop_summary_is_nullable():
@@ -25,3 +25,7 @@ def test_collection_has_parent_id_column():
     # the nested-collection support the data layer depends on.
     assert "parent_id" in Collection.__table__.c
     assert Collection.__table__.c.parent_id.nullable is True
+
+
+def test_setting_key_is_primary_key():
+    assert Setting.__table__.c.key.primary_key is True
