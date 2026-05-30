@@ -83,6 +83,11 @@ class Avocet(App):
                     yield Static("", id="detail-summary")
         yield Footer()
 
+    def watch_theme(self, theme_name: str) -> None:
+        # Persist the selected theme so it is restored on next launch.
+        if getattr(self, "db", None) is not None:
+            self.db.set_setting("theme", theme_name)
+
     def on_mount(self) -> None:
         self.register_theme(CATPPUCCIN_MOCHA)
         self.theme = self.db.get_setting("theme") or "catppuccin-mocha"
@@ -167,7 +172,21 @@ class Avocet(App):
             webbrowser.open(raindrop.link)
 
     def action_refresh(self) -> None:
-        self.notify("Refresh wired up in Phase 4")
+        if self.api is None:
+            self.api = RaindropAPI()
+        self._sync()
+
+    @work(exclusive=True, group="sync")
+    async def _sync(self) -> None:
+        assert self.api is not None
+        collections = await self.api.get_collections()
+        for collection in collections:
+            self.db.upsert_collection(collection)
+            items = await self.api.get_raindrops_by_collection_id(collection["_id"])
+            self.db.upsert_raindrops(items, collection["_id"])
+        self.db.touch_last_update()
+        self._load_collections()
+        self.notify("Synced from Raindrop.io")
 
     def action_search(self) -> None:
         self.notify("Search wired up in Phase 4")
