@@ -2,22 +2,42 @@
 
 # Avocet
 
-Avocet is a TUI the accesses the [Raindrop API](https://developer.raindrop.io/). It is written in Python and uses the [Textual Framework](https://textual.textualize.io). It also summarizes each bookmark as it is loaded and displays the summary, and opens the bookmark link in the default browser.
+Avocet is a TUI for browsing your [Raindrop.io](https://raindrop.io) bookmarks. It is written in Python with the [Textual](https://textual.textualize.io) framework. It syncs your collections and bookmarks into a local SQLite cache, generates a concise summary of a bookmark with [Claude](https://www.anthropic.com/claude) the first time you open it (cached thereafter), and opens links in your default browser.
 
 ## Requirements
 
-- Python 3
-- [Poetry](https://python-poetry.org/docs/)
-- [Just](https://github.com/casey/just)
+- Python 3.12+
+- [uv](https://docs.astral.sh/uv/)
 
 ## Getting Started
 
-1. Clone the repo
-1. Run `just install` or `poetry install` to install dependencies
-1. Set your Raindrop.io API token as the environment variable `RAINDROP`.
-1. Run `just run` or `poetry run avocet` to run the
-1. Tab between sections. Use the arrow keys to navigate within a section. Press enter in the collections section to view the bookmarks in that collection. Press enter on a bookmark to open it in your default browser. Press `ctrl-c` to quit.
-1. View the [justfile](./justfile) for more commands.
-1. Note: it can take a while to load the first time it is started, because it has to contact OpenAI to summarize each bookmark. Speeding this process up is on my Todo list.
+1. Clone the repo.
+2. `uv sync` (or `just install`) to install dependencies.
+3. Set the required environment variables:
+   - `RAINDROP` — your Raindrop.io API token (from app.raindrop.io/settings/integrations).
+   - `ANTHROPIC_API_KEY` — your Anthropic API key (used to summarize bookmarks).
+4. `just run` (or `uv run textual run --dev avocet/app.py`).
+5. Navigate with the arrow keys. Move focus between the collections sidebar and the
+   bookmarks table; press Enter on a bookmark to view its details — a Claude summary is
+   generated on first view and cached. Useful keys: `o` open in browser, `/` search,
+   `a`/`e`/`d` add/edit/delete, `f` filter by tag, `r` refresh from Raindrop, and
+   `ctrl+p` for the command palette (including runtime theme switching). `ctrl+c` quits.
+
+Summaries are generated lazily the first time you open each bookmark, so startup is instant.
+
+## Development
+
+Common tasks (see the [justfile](./justfile) for all of them):
+
+```bash
+just test            # uv run pytest
+just lint            # uv run ruff check .
+just typecheck       # uv run ty check
+just snapshot-update # regenerate visual snapshot baselines after a UI change
+```
+
+The test suite has three layers: unit tests (Raindrop API client and database manager),
+interaction tests driven through Textual's `run_test`/`Pilot`, and visual-regression
+snapshot tests via `pytest-textual-snapshot`.
 
 ![Screenshot](./media/Screenshot.png)

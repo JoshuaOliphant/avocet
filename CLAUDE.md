@@ -4,64 +4,72 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Avocet is a Textual TUI for browsing [Raindrop.io](https://raindrop.io) bookmarks. On first launch it pulls every collection and bookmark from the Raindrop API into a local SQLite database, then uses OpenAI (via LangChain) to generate a summary of each bookmark. Selecting a bookmark opens it in the browser.
+Avocet is a Textual TUI for browsing [Raindrop.io](https://raindrop.io) bookmarks. It syncs collections and bookmarks from the Raindrop API into a local SQLite cache, and generates a concise summary of a bookmark with Claude the first time you open it (cached thereafter). Selecting a bookmark opens it in the browser.
 
-## Toolchain (Poetry + just, not uv)
+## Toolchain (uv + just)
 
-This repo is managed with **Poetry**, and tasks run through a **justfile** — despite the global preference for `uv`. The `uv.lock` at the root is a 3-line stub; `poetry.lock` is the real lockfile. Don't "migrate" to uv unless explicitly asked.
-
-```bash
-just install      # poetry install
-just run          # poetry run textual run --dev avocet/app.py   (THE way to launch — see gotcha below)
-just test         # poetry run pytest
-just console      # textual console (live debug log; run in a second terminal while the app runs)
-just shell        # poetry shell
-```
-
-Run a single test (no console-script shortcut needed):
+This repo is managed with **uv** (PEP 621 `pyproject.toml`, real `uv.lock`), with tasks fronted by a **justfile**.
 
 ```bash
-poetry run pytest tests/test_raindrop_api.py
-poetry run pytest tests/test_raindrop_api.py::test_get_collections
-poetry run pytest -k collection
+just install         # uv sync
+just run             # uv run textual run --dev avocet/app.py
+just test            # uv run pytest
+just lint            # uv run ruff check .
+just typecheck       # uv run ty check
+just console         # uv run textual console (live debug log in a second terminal)
+just snapshot-update # uv run pytest --snapshot-update (regenerate visual baselines)
 ```
 
-Lint matches CI: `poetry run flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics`. CI (`.github/workflows/python-app.yml`) runs on Python 3.11 with flake8 + pytest on pushes/PRs to `main`.
+Run a single test:
+
+```bash
+uv run pytest tests/test_raindrop_api.py
+uv run pytest tests/test_raindrop_api.py::test_get_raindrops_paginates
+uv run pytest -k collection
+```
+
+CI (`.github/workflows/python-app.yml`) runs `ruff check`, `ty check`, and `pytest` on Python 3.12 and 3.13 via uv, on pushes/PRs to `main`.
 
 ## Required environment variables
 
-- `RAINDROP` — Raindrop.io API token (read by `RaindropAPI.__init__` via `os.environ["RAINDROP"]`; **note the name is `RAINDROP`, not `RAINDROP_TOKEN`**).
-- `OPENAI_API_KEY` — used by `AI` for summarization/embeddings.
-- `DB_NAME` — optional, defaults to `avocet`; controls the SQLite filename `{DB_NAME}.sqlite`.
+- `RAINDROP` — Raindrop.io API token (read by `RaindropAPI.__init__` via `os.environ["RAINDROP"]`; **the name is `RAINDROP`, not `RAINDROP_TOKEN`**).
+- `ANTHROPIC_API_KEY` — used by `ClaudeSummaryProvider` to summarize bookmarks.
+
+The SQLite cache lives under the platform cache dir (`platformdirs.user_cache_dir("avocet")`), not the working directory.
 
 ## Architecture
 
-Four modules under `avocet/`, orchestrated by the Textual app:
+Modules under `avocet/`, orchestrated by the Textual app:
 
 ```
-app.py  (Avocet(App)) — UI + lifecycle orchestration
-   ├── raindrop_api.py  (RaindropAPI)      async httpx client for the Raindrop REST API
-   ├── database_manager.py (DatabaseManager) SQLAlchemy session wrapper over local SQLite
-   │      └── models.py (Collection / Raindrop / Update)  declarative SQLAlchemy models
-   └── ai.py (AI)        LangChain + OpenAI: fetch page, summarize, persist Chroma vectors
+app.py      (Avocet(App)) — three-pane UI + lifecycle; constructed with injected dependencies
+   ├── raindrop_api.py     (RaindropAPI)      async httpx client for the Raindrop REST API
+   ├── database_manager.py (DatabaseManager)  SQLAlchemy 2.0 wrapper over the local SQLite cache + settings
+   │      └── models.py    (Collection / Raindrop / Update)  typed declarative models
+   ├── summary.py          (SummaryProvider / ClaudeSummaryProvider / StubSummaryProvider)
+   └── screens.py          (Add/Edit/Delete/Search/TagFilter ModalScreens + result dataclasses)
 ```
 
-**Local DB is the source of truth for the UI.** The TUI reads exclusively from `DatabaseManager` (SQLAlchemy queries). `RaindropAPI` and `AI` are only touched during the `startup` worker to populate/refresh the DB — never in response to user navigation.
+**Local DB is the source of truth for the UI.** The TUI reads exclusively from `DatabaseManager`. `RaindropAPI` and the summary provider are touched only by background workers (`@work`), never directly in response to navigation.
 
-**Startup flow (`app.py`).** `on_mount` checks whether `{DB_NAME}.sqlite` exists, then kicks off the `@work`-decorated `startup` worker:
-- **First run** (no DB file): `initialize_db` fetches all collections + their raindrops and stores them; then `add_text` calls `AI.html_to_markdown` for *every* bookmark to generate a summary. This is why the first launch is slow — one OpenAI round-trip per bookmark.
-- **Subsequent runs**: `update_db` fetches only raindrops changed since `Update.last_update` (Raindrop `search=lastUpdate:<date>`), and `update_text` re-summarizes just those.
+**Dependency injection.** `Avocet(db=None, summary_provider=None, api=None)` — defaults build a real `DatabaseManager` (platform cache dir) and `ClaudeSummaryProvider`. Tests inject a seeded in-memory `DatabaseManager` and a `StubSummaryProvider`, so they never hit the network. This seam is what makes interaction and snapshot tests deterministic.
 
-After populating, the progress bars are removed and `initialize_view` builds the two `OptionList`s (collections, raindrops) and the `MarkdownViewer`. Navigation handlers (`@on(OptionList.OptionSelected/OptionHighlighted)`) query the DB by id: highlighting a raindrop shows its `summary`; selecting one opens `raindrop.link` in the browser.
+**UI.** Three panes: a collections `ListView` (`#collections`), a bookmarks `DataTable` (`#bookmarks`), and a detail panel (`#detail` with `#detail-title`/`#detail-meta`/`#detail-summary`). Selecting a collection repopulates the table from the DB; selecting a row shows detail. Catppuccin Mocha theme is registered as the default and persisted to the DB settings table via `watch_theme`; the command palette switches themes at runtime. Keybindings: `o` open, `r` refresh/sync, `/` search, `a` add, `e` edit, `d` delete, `f` filter tag.
 
-**Data model.** `Raindrop` mirrors the Raindrop API fields plus an extra `summary` column (the OpenAI-generated text — the one column that isn't from the API). The `Update` table holds a single row tracking the last sync time.
+**Lazy summaries.** A summary is generated on explicit row selection (Enter), not on highlight, inside a `@work(exclusive=True)` worker — so arrowing through rows never fires a storm of API calls. The result is cached in SQLite (`DatabaseManager.set_summary`) and reused forever. `upsert_raindrops` deliberately preserves an existing summary on re-sync (never clobbers it).
 
-## Import-path gotcha
+**Sync.** `action_refresh` runs the `_sync` worker: fetch collections + their raindrops from `RaindropAPI` and upsert into the DB, then reload the UI.
 
-Modules use **bare imports** (`from database_manager import DatabaseManager`, `from models import ...`), not package-relative imports. These resolve only because `pyproject.toml` sets `pythonpath = [".", "avocet", "tests"]` for pytest, and because the app is launched via `textual run --dev avocet/app.py` (which runs the file with its directory on the path). Running `python -m avocet.app` will fail on imports. Preserve the bare-import style when adding modules under `avocet/`, or update `pythonpath` accordingly.
+**Data-correctness details (these were bugs in the old code, now fixed and tested).** `RaindropAPI.get_raindrops_by_collection_id` **paginates** (`perpage=50`, loop until a short page) instead of returning only the first ~25. `get_collections` merges root `/collections`, nested `/collections/childrens`, and a synthetic system "All" collection (`_id: 0`), so every bookmark is reachable.
 
-## Testing
+## Imports
 
-- `tests/test_raindrop_api.py` mocks HTTP with `pytest-httpx` (the `httpx_mock` fixture) and sets a fake `RAINDROP` token via `monkeypatch` — tests never hit the real API.
-- `tests/test_database_manager.py` builds a `DatabaseManager` over a real in-memory SQLite engine (`create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)` + `create_tables()`), so it exercises the manager's logic against a real database with real data — no mocks. `StaticPool` (plus `check_same_thread=False`) keeps one shared connection alive so the schema created in the fixture persists across the sessions the manager opens. Note these tests import package-style (`from avocet.database_manager import ...`) while `app.py` uses bare imports — both resolve through the `pythonpath` list.
-- `asyncio_mode = "auto"` is set in `pyproject.toml`, so `async def test_*` runs without an explicit marker (the existing `@pytest.mark.asyncio` decorators are redundant but harmless).
+All modules under `avocet/` use **package imports** (`from avocet.models import ...`). The package is genuinely installable (hatchling wheel + `avocet = "avocet.app:main"` console script). The pytest `pythonpath` is `[".", "tests"]`. Keep new internal imports in the `avocet.` form — do not introduce bare `from models import ...` style (it breaks `ty` and a real install, and can cause SQLAlchemy double-registration).
+
+## Testing (three layers)
+
+- **Unit.** `tests/test_raindrop_api.py` mocks HTTP with `pytest-httpx` (the `httpx_mock` fixture) including multi-page responses that prove pagination assembles all items. `tests/test_database_manager.py` and `tests/test_models.py` use a real in-memory SQLite engine: `create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)` + `create_tables()`. `StaticPool` is required so the schema created in the fixture persists across the sessions the manager opens — no mocks.
+- **Interaction.** `tests/test_app_*.py` drive the app through Textual's `App.run_test()` / `Pilot` API with a seeded in-memory DB and `StubSummaryProvider`, asserting real state changes (collection switch, lazy summary, modal flows, sync).
+- **Visual regression.** `tests/test_snapshots.py` uses `pytest-textual-snapshot` (`snap_compare`) against `tests/snapshot_apps/seeded_app.py` (a deterministic seeded launcher). Baselines live under `tests/__snapshots__/`. Regenerate with `just snapshot-update` only after visually confirming an intended UI change.
+
+`asyncio_mode = "auto"` is set, so `async def test_*` runs without a marker.
