@@ -15,7 +15,12 @@ from textual.widgets import DataTable, Footer, Header, Label, ListItem, ListView
 
 from avocet.database_manager import DatabaseManager
 from avocet.models import Raindrop
-from avocet.raindrop_api import RaindropAPI, RaindropClient
+from avocet.raindrop_api import (
+    ALL_COLLECTION_ID,
+    SYSTEM_COLLECTION_IDS,
+    RaindropAPI,
+    RaindropClient,
+)
 from avocet.screens import (
     AddBookmarkScreen,
     AddResult,
@@ -26,10 +31,6 @@ from avocet.screens import (
     TagFilterScreen,
 )
 from avocet.summary import ClaudeSummaryProvider, SummaryProvider
-
-# The synthetic "All" collection (id 0) is a virtual view over every bookmark.
-# It is never stored as a real collection or used as a raindrop's collection_id.
-ALL_COLLECTION_ID = 0
 
 CATPPUCCIN_MOCHA = Theme(
     name="catppuccin-mocha",
@@ -45,6 +46,10 @@ CATPPUCCIN_MOCHA = Theme(
     error="#f38ba8",
     dark=True,
 )
+
+
+def _fmt_tags(tags: list[str]) -> str:
+    return " ".join(f"#{t}" for t in tags)
 
 
 def _default_db() -> DatabaseManager:
@@ -149,8 +154,7 @@ class Avocet(App):
         for raindrop in rows:
             row_key = str(raindrop.id)
             created = raindrop.created.strftime("%Y-%m-%d") if raindrop.created else ""
-            tags_str = " ".join(f"#{t}" for t in raindrop.tags)
-            table.add_row(raindrop.title or "", tags_str, created, key=row_key)
+            table.add_row(raindrop.title or "", _fmt_tags(raindrop.tags), created, key=row_key)
             self._row_to_raindrop[row_key] = raindrop.id
 
     @on(ListView.Selected, "#collections")
@@ -169,7 +173,7 @@ class Avocet(App):
         if raindrop is None:
             return
         self.query_one("#detail-title", Label).update(raindrop.title or "")
-        tags = " ".join(f"#{t}" for t in raindrop.tags)
+        tags = _fmt_tags(raindrop.tags)
         self.query_one("#detail-meta", Static).update(f"{tags}  ·  {raindrop.link or ''}")
         if raindrop.summary:
             self.query_one("#detail-summary", Static).update(raindrop.summary)
@@ -218,9 +222,8 @@ class Avocet(App):
                 self.api = RaindropAPI()
             collections = await self.api.get_collections()
             for collection in collections:
-                # Skip the synthetic "All" (0) and "Unsorted" (-1) system views —
-                # they are not real collections and must never own a raindrop.
-                if collection["_id"] in (ALL_COLLECTION_ID, -1):
+                # System views ("All", "Unsorted") are virtual — never store them.
+                if collection["_id"] in SYSTEM_COLLECTION_IDS:
                     continue
                 self.db.upsert_collection(collection)
                 items = await self.api.get_raindrops_by_collection_id(collection["_id"])
@@ -245,11 +248,9 @@ class Avocet(App):
                 self.api = RaindropAPI()
             items = await self.api.get_raindrops_by_collection_id(collection_id, search=query)
             self.db.upsert_raindrops(items, collection_id)
-            # Show only the matches — re-fetch each from the DB so they carry
-            # their real collection_id (the upsert routes them to it), then
-            # render that explicit list instead of the whole collection.
-            matches = [self.db.get_raindrop(item["_id"]) for item in items]
-            self._render_rows([r for r in matches if r is not None])
+            # Show only the matches (read back from the DB in one query so they
+            # carry their real collection_id), not the whole collection.
+            self._render_rows(self.db.get_raindrops_by_ids([item["_id"] for item in items]))
             self.notify(f"{len(items)} result(s) for '{query}'")
         except Exception as exc:  # noqa: BLE001 — surface any failure to the user
             self.notify(f"Search failed: {exc}", severity="error")

@@ -9,7 +9,15 @@ import httpx
 
 BASE_URL = "https://api.raindrop.io/rest/v1"
 PER_PAGE = 50
-SYSTEM_ALL = {"_id": 0, "title": "All", "parent": None}
+
+# Raindrop's system collections are virtual views, not real containers: "All" (0)
+# aggregates every bookmark and "Unsorted" (-1) holds the uncategorised ones.
+# They must never be stored as collections or own a raindrop's collection_id.
+ALL_COLLECTION_ID = 0
+UNSORTED_COLLECTION_ID = -1
+SYSTEM_COLLECTION_IDS = (ALL_COLLECTION_ID, UNSORTED_COLLECTION_ID)
+
+SYSTEM_ALL = {"_id": ALL_COLLECTION_ID, "title": "All", "parent": None}
 
 
 class RaindropClient(Protocol):

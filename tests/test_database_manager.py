@@ -112,3 +112,11 @@ def test_upsert_falls_back_to_passed_collection_when_payload_omits_it(db):
     db.upsert_collection(_collection(1, "Reading"))
     db.upsert_raindrops([{"_id": 40, "title": "y", "tags": []}], collection_id=1)
     assert db.get_raindrop(40).collection_id == 1
+
+
+def test_get_raindrops_by_ids_preserves_order_and_skips_missing(db):
+    # Returns rows in the requested id order; ids with no row are skipped.
+    db.upsert_collection(_collection(1, "Reading"))
+    db.upsert_raindrops([_raindrop(10, 1), _raindrop(11, 1), _raindrop(12, 1)], collection_id=1)
+    result = db.get_raindrops_by_ids([12, 999, 10])
+    assert [r.id for r in result] == [12, 10]

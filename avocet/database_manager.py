@@ -86,6 +86,13 @@ class DatabaseManager:
             stmt = select(Raindrop).order_by(Raindrop.created.desc())
             return list(session.scalars(stmt))
 
+    def get_raindrops_by_ids(self, ids: list[int]) -> list[Raindrop]:
+        # Fetch many raindrops in a single query, returned in the given id order
+        # (ids with no matching row are skipped).
+        with self.Session() as session:
+            found = {r.id: r for r in session.scalars(select(Raindrop).where(Raindrop.id.in_(ids)))}
+        return [found[i] for i in ids if i in found]
+
     def get_raindrop(self, raindrop_id: int) -> Raindrop | None:
         with self.Session() as session:
             return session.get(Raindrop, raindrop_id)
