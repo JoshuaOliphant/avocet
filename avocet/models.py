@@ -1,4 +1,4 @@
-# ABOUTME: SQLAlchemy 2.0 declarative models for collections, raindrops, and sync state.
+# ABOUTME: SQLAlchemy 2.0 declarative models for collections, raindrops, and app settings.
 # ABOUTME: Raindrop.summary is a nullable, lazily-populated Claude-generated summary.
 from __future__ import annotations
 
