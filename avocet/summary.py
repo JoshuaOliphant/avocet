@@ -67,4 +67,8 @@ class ClaudeSummaryProvider:
                 }
             ],
         )
-        return "".join(block.text for block in message.content if block.type == "text").strip()
+        from anthropic.types import TextBlock
+
+        return "".join(
+            block.text for block in message.content if isinstance(block, TextBlock)
+        ).strip()

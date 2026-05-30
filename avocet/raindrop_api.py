@@ -3,12 +3,35 @@
 from __future__ import annotations
 
 import os
+from typing import Protocol
 
 import httpx
 
 BASE_URL = "https://api.raindrop.io/rest/v1"
 PER_PAGE = 50
 SYSTEM_ALL = {"_id": 0, "title": "All", "parent": None}
+
+
+class RaindropClient(Protocol):
+    """The async Raindrop operations the app depends on.
+
+    Typing the app's injected client as this protocol (rather than the concrete
+    RaindropAPI) lets tests pass a structural fake without subclassing.
+    """
+
+    async def get_collections(self) -> list[dict]: ...
+
+    async def get_raindrops_by_collection_id(
+        self, collection_id: int, search: str | None = None
+    ) -> list[dict]: ...
+
+    async def get_raindrop(self, raindrop_id: int) -> dict: ...
+
+    async def add_raindrop(self, link: str, collection_id: int, tags: list[str]) -> dict: ...
+
+    async def update_raindrop(self, raindrop_id: int, fields: dict) -> dict: ...
+
+    async def delete_raindrop(self, raindrop_id: int) -> None: ...
 
 
 class RaindropAPI:
@@ -32,7 +55,7 @@ class RaindropAPI:
         page = 0
         async with self._client() as client:
             while True:
-                params: dict[str, object] = {"perpage": PER_PAGE, "page": page}
+                params: dict[str, str | int] = {"perpage": PER_PAGE, "page": page}
                 if search:
                     params["search"] = search
                 batch = (

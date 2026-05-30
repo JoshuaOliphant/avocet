@@ -14,7 +14,7 @@ from textual.widgets import DataTable, Footer, Header, Label, ListItem, ListView
 
 from avocet.database_manager import DatabaseManager
 from avocet.models import Raindrop
-from avocet.raindrop_api import RaindropAPI
+from avocet.raindrop_api import RaindropAPI, RaindropClient
 from avocet.screens import (
     AddBookmarkScreen,
     AddResult,
@@ -55,6 +55,14 @@ def _default_db() -> DatabaseManager:
     return manager
 
 
+class CollectionItem(ListItem):
+    """A sidebar list item that carries the id of the collection it represents."""
+
+    def __init__(self, collection_id: int, label: str) -> None:
+        super().__init__(Label(label))
+        self.collection_id = collection_id
+
+
 class Avocet(App):
     CSS_PATH = "avocet.tcss"
     BINDINGS = [
@@ -71,7 +79,7 @@ class Avocet(App):
         self,
         db: DatabaseManager | None = None,
         summary_provider: SummaryProvider | None = None,
-        api: RaindropAPI | None = None,
+        api: RaindropClient | None = None,
     ) -> None:
         super().__init__()
         self.db = db or _default_db()
@@ -111,9 +119,7 @@ class Avocet(App):
         listview.clear()
         collections = self.db.get_collections()
         for collection in collections:
-            item = ListItem(Label(collection.title or "(untitled)"))
-            item.collection_id = collection.id  # type: ignore[attr-defined]
-            listview.append(item)
+            listview.append(CollectionItem(collection.id, collection.title or "(untitled)"))
         if collections:
             self._populate_table(collections[0].id)
 
@@ -134,9 +140,8 @@ class Avocet(App):
 
     @on(ListView.Selected, "#collections")
     def _collection_selected(self, event: ListView.Selected) -> None:
-        collection_id = getattr(event.item, "collection_id", None)
-        if collection_id is not None:
-            self._populate_table(collection_id)
+        if isinstance(event.item, CollectionItem):
+            self._populate_table(event.item.collection_id)
 
     @on(DataTable.RowSelected, "#bookmarks")
     def _row_selected(self, event: DataTable.RowSelected) -> None:
@@ -264,7 +269,7 @@ class Avocet(App):
         if raindrop is None:
             return
 
-        def on_close(confirmed: bool) -> None:
+        def on_close(confirmed: bool | None) -> None:
             if confirmed:
                 self._do_delete(raindrop.id)
 
