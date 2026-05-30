@@ -1,7 +1,5 @@
 # ABOUTME: Tests for the async Raindrop API client using pytest-httpx.
 # ABOUTME: Proves pagination assembles all pages and nested+system collections are included.
-import json as _json
-
 import json
 
 import httpx
@@ -49,7 +47,7 @@ async def test_sends_bearer_token(api, httpx_mock: HTTPXMock):
     assert request.headers["Authorization"] == "Bearer fake-token"
 
 
-async def test_add_raindrop_posts_expected_payload(api, httpx_mock: HTTPXMock):
+async def test_add_raindrop_without_title_asks_raindrop_to_parse(api, httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url=f"{BASE}/raindrop", method="POST", json={"item": {"_id": 99, "link": "https://x"}}
     )
@@ -57,8 +55,18 @@ async def test_add_raindrop_posts_expected_payload(api, httpx_mock: HTTPXMock):
     assert result["_id"] == 99
     request = httpx_mock.get_requests()[0]
     assert request.method == "POST"
-    body = _json.loads(request.content)
-    assert body == {"link": "https://x", "collectionId": 1, "pleaseParse": {}, "tags": ["py"]}
+    body = json.loads(request.content)
+    assert body == {"link": "https://x", "collectionId": 1, "tags": ["py"], "pleaseParse": {}}
+
+
+async def test_add_raindrop_with_title_sends_title_not_parse(api, httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url=f"{BASE}/raindrop", method="POST", json={"item": {"_id": 99, "title": "Mine"}}
+    )
+    await api.add_raindrop("https://x", 1, ["py"], title="Mine")
+    body = json.loads(httpx_mock.get_requests()[0].content)
+    assert body == {"link": "https://x", "collectionId": 1, "tags": ["py"], "title": "Mine"}
+    assert "pleaseParse" not in body
 
 
 async def test_update_raindrop_puts_fields(api, httpx_mock: HTTPXMock):
@@ -69,7 +77,7 @@ async def test_update_raindrop_puts_fields(api, httpx_mock: HTTPXMock):
     assert result["title"] == "New"
     request = httpx_mock.get_requests()[0]
     assert request.method == "PUT"
-    assert _json.loads(request.content) == {"title": "New", "tags": ["a"]}
+    assert json.loads(request.content) == {"title": "New", "tags": ["a"]}
 
 
 async def test_delete_raindrop_issues_delete(api, httpx_mock: HTTPXMock):
