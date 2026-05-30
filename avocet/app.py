@@ -131,15 +131,21 @@ class Avocet(App):
 
     def _populate_table(self, collection_id: int, tag: str | None = None) -> None:
         self._current_collection_id = collection_id
-        table = self.query_one("#bookmarks", DataTable)
-        table.clear()
-        self._row_to_raindrop.clear()
         if collection_id == ALL_COLLECTION_ID:
             rows = self.db.get_all_raindrops()
         else:
             rows = self.db.get_raindrops_by_collection_id(collection_id)
         if tag:
             rows = [r for r in rows if tag in r.tags]
+        self._render_rows(rows)
+
+    def _render_rows(self, rows: list[Raindrop]) -> None:
+        # Render an explicit list of raindrops into the bookmarks table. Used for
+        # collection views (via _populate_table) and for search results, which
+        # must show only the matches rather than the whole collection.
+        table = self.query_one("#bookmarks", DataTable)
+        table.clear()
+        self._row_to_raindrop.clear()
         for raindrop in rows:
             row_key = str(raindrop.id)
             created = raindrop.created.strftime("%Y-%m-%d") if raindrop.created else ""
@@ -239,7 +245,12 @@ class Avocet(App):
                 self.api = RaindropAPI()
             items = await self.api.get_raindrops_by_collection_id(collection_id, search=query)
             self.db.upsert_raindrops(items, collection_id)
-            self._populate_table(collection_id)
+            # Show only the matches — re-fetch each from the DB so they carry
+            # their real collection_id (the upsert routes them to it), then
+            # render that explicit list instead of the whole collection.
+            matches = [self.db.get_raindrop(item["_id"]) for item in items]
+            self._render_rows([r for r in matches if r is not None])
+            self.notify(f"{len(items)} result(s) for '{query}'")
         except Exception as exc:  # noqa: BLE001 — surface any failure to the user
             self.notify(f"Search failed: {exc}", severity="error")
 
@@ -258,7 +269,9 @@ class Avocet(App):
         try:
             if self.api is None:
                 self.api = RaindropAPI()
-            item = await self.api.add_raindrop(result.link, result.collection_id, result.tags)
+            item = await self.api.add_raindrop(
+                result.link, result.collection_id, result.tags, result.title
+            )
             self.db.upsert_raindrops([item], result.collection_id)
             self._populate_table(result.collection_id)
             self.notify("Bookmark added")

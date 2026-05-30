@@ -14,6 +14,7 @@ from textual.widgets import Button, Input, Label
 class AddResult:
     link: str
     collection_id: int
+    title: str = ""
     tags: list[str] = field(default_factory=list)
 
 
@@ -37,6 +38,7 @@ class AddBookmarkScreen(ModalScreen[AddResult | None]):
         with Vertical(id="dialog"):
             yield Label("Add bookmark")
             yield Input(placeholder="https://…", id="link")
+            yield Input(placeholder="title (optional, auto-fetched if blank)", id="title")
             yield Input(placeholder="tags, comma, separated", id="tags")
             yield Button("Add", id="confirm", variant="primary")
             yield Button("Cancel", id="cancel")
@@ -44,9 +46,17 @@ class AddBookmarkScreen(ModalScreen[AddResult | None]):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "confirm":
             link = self.query_one("#link", Input).value.strip()
+            title = self.query_one("#title", Input).value.strip()
             tags = _parse_tags(self.query_one("#tags", Input).value)
             if link:
-                self.dismiss(AddResult(link=link, collection_id=self._collection_id, tags=tags))
+                self.dismiss(
+                    AddResult(
+                        link=link,
+                        collection_id=self._collection_id,
+                        title=title,
+                        tags=tags,
+                    )
+                )
                 return
         self.dismiss(None)
 

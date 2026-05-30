@@ -22,7 +22,9 @@ class BaseFakeRaindrop:
     async def get_raindrop(self, raindrop_id: int) -> dict:
         raise NotImplementedError
 
-    async def add_raindrop(self, link: str, collection_id: int, tags: list[str]) -> dict:
+    async def add_raindrop(
+        self, link: str, collection_id: int, tags: list[str], title: str = ""
+    ) -> dict:
         raise NotImplementedError
 
     async def update_raindrop(self, raindrop_id: int, fields: dict) -> dict:

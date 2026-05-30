@@ -25,7 +25,9 @@ class RaindropClient(Protocol):
         self, collection_id: int, search: str | None = None
     ) -> list[dict]: ...
 
-    async def add_raindrop(self, link: str, collection_id: int, tags: list[str]) -> dict: ...
+    async def add_raindrop(
+        self, link: str, collection_id: int, tags: list[str], title: str = ""
+    ) -> dict: ...
 
     async def update_raindrop(self, raindrop_id: int, fields: dict) -> dict: ...
 
@@ -73,8 +75,16 @@ class RaindropAPI:
             response.raise_for_status()
             return response.json().get("item", {})
 
-    async def add_raindrop(self, link: str, collection_id: int, tags: list[str]) -> dict:
-        payload = {"link": link, "collectionId": collection_id, "pleaseParse": {}, "tags": tags}
+    async def add_raindrop(
+        self, link: str, collection_id: int, tags: list[str], title: str = ""
+    ) -> dict:
+        payload: dict = {"link": link, "collectionId": collection_id, "tags": tags}
+        if title:
+            # Use the title the user typed.
+            payload["title"] = title
+        else:
+            # Ask Raindrop to fetch the page title/excerpt itself.
+            payload["pleaseParse"] = {}
         async with self._client() as client:
             response = await client.post("/raindrop", json=payload)
             response.raise_for_status()

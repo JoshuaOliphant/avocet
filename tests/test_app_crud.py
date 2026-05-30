@@ -21,9 +21,9 @@ class FakeAPI(BaseFakeRaindrop):
     async def get_raindrops_by_collection_id(self, collection_id, search=None):
         return [{"_id": 10, "title": "Textual", "link": "https://x", "tags": []}]
 
-    async def add_raindrop(self, link, collection_id, tags):
-        item = {"_id": 99, "title": link, "link": link, "tags": tags}
-        self.added.append(item)
+    async def add_raindrop(self, link, collection_id, tags, title=""):
+        item = {"_id": 99, "title": title or link, "link": link, "tags": tags}
+        self.added.append({"link": link, "title": title, "tags": tags})
         return item
 
     async def delete_raindrop(self, raindrop_id):

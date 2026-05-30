@@ -2,6 +2,8 @@
 # ABOUTME: Proves pagination assembles all pages and nested+system collections are included.
 import json as _json
 
+import json
+
 import httpx
 import pytest
 from pytest_httpx import HTTPXMock
