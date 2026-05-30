@@ -143,3 +143,7 @@ avocet.sqlite
 docs/*
 
 ganglion.toml
+
+# Local SQLite cache
+*.sqlite
+*.sqlite3
