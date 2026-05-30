@@ -44,9 +44,11 @@ class RaindropAPI:
 
     async def get_collections(self) -> list[dict]:
         async with self._client() as client:
-            root = (await client.get("/collections")).json().get("items", [])
-            children = (await client.get("/collections/childrens")).json().get("items", [])
-        return [SYSTEM_ALL, *root, *children]
+            root = await client.get("/collections")
+            root.raise_for_status()
+            children = await client.get("/collections/childrens")
+            children.raise_for_status()
+        return [SYSTEM_ALL, *root.json().get("items", []), *children.json().get("items", [])]
 
     async def get_raindrops_by_collection_id(
         self, collection_id: int, search: str | None = None
@@ -58,9 +60,9 @@ class RaindropAPI:
                 params: dict[str, str | int] = {"perpage": PER_PAGE, "page": page}
                 if search:
                     params["search"] = search
-                batch = (
-                    await client.get(f"/raindrops/{collection_id}", params=params)
-                ).json().get("items", [])
+                response = await client.get(f"/raindrops/{collection_id}", params=params)
+                response.raise_for_status()
+                batch = response.json().get("items", [])
                 items.extend(batch)
                 if len(batch) < PER_PAGE:
                     break
@@ -69,19 +71,24 @@ class RaindropAPI:
 
     async def get_raindrop(self, raindrop_id: int) -> dict:
         async with self._client() as client:
-            return (await client.get(f"/raindrop/{raindrop_id}")).json().get("item", {})
+            response = await client.get(f"/raindrop/{raindrop_id}")
+            response.raise_for_status()
+            return response.json().get("item", {})
 
     async def add_raindrop(self, link: str, collection_id: int, tags: list[str]) -> dict:
         payload = {"link": link, "collectionId": collection_id, "pleaseParse": {}, "tags": tags}
         async with self._client() as client:
-            return (await client.post("/raindrop", json=payload)).json().get("item", {})
+            response = await client.post("/raindrop", json=payload)
+            response.raise_for_status()
+            return response.json().get("item", {})
 
     async def update_raindrop(self, raindrop_id: int, fields: dict) -> dict:
         async with self._client() as client:
-            return (
-                await client.put(f"/raindrop/{raindrop_id}", json=fields)
-            ).json().get("item", {})
+            response = await client.put(f"/raindrop/{raindrop_id}", json=fields)
+            response.raise_for_status()
+            return response.json().get("item", {})
 
     async def delete_raindrop(self, raindrop_id: int) -> None:
         async with self._client() as client:
-            await client.delete(f"/raindrop/{raindrop_id}")
+            response = await client.delete(f"/raindrop/{raindrop_id}")
+            response.raise_for_status()
