@@ -1,34 +1,54 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, JSON
-from sqlalchemy.orm import relationship, backref
-from sqlalchemy.ext.declarative import declarative_base
+# ABOUTME: SQLAlchemy 2.0 declarative models for collections, raindrops, and sync state.
+# ABOUTME: Raindrop.summary is a nullable, lazily-populated Claude-generated summary.
+from __future__ import annotations
 
-Base = declarative_base()
+from datetime import datetime
+
+from sqlalchemy import ForeignKey, JSON
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+
+class Base(DeclarativeBase):
+    pass
+
 
 class Collection(Base):
-    __tablename__ = 'collections'
-    id = Column(Integer, primary_key=True)
-    title = Column(String)
-    description = Column(String)
-    count = Column(Integer)
-    created = Column(DateTime)
-    last_update = Column(DateTime)
-    raindrops = relationship("Raindrop", backref=backref("collection"))
+    __tablename__ = "collections"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str | None] = mapped_column(default=None)
+    description: Mapped[str | None] = mapped_column(default=None)
+    count: Mapped[int | None] = mapped_column(default=None)
+    parent_id: Mapped[int | None] = mapped_column(default=None)
+    created: Mapped[datetime | None] = mapped_column(default=None)
+    last_update: Mapped[datetime | None] = mapped_column(default=None)
+
+    raindrops: Mapped[list["Raindrop"]] = relationship(
+        back_populates="collection", cascade="all, delete-orphan"
+    )
+
 
 class Raindrop(Base):
-    __tablename__ = 'raindrops'
-    id = Column(Integer, primary_key=True)
-    excerpt = Column(String)
-    note = Column(String)
-    title = Column(String)
-    link = Column(String)
-    created = Column(DateTime)
-    last_update = Column(DateTime)
-    collection_id = Column(Integer, ForeignKey('collections.id'))
-    tags = Column(JSON)
-    # non-raindrop columns
-    summary = Column(String)
+    __tablename__ = "raindrops"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str | None] = mapped_column(default=None)
+    excerpt: Mapped[str | None] = mapped_column(default=None)
+    note: Mapped[str | None] = mapped_column(default=None)
+    link: Mapped[str | None] = mapped_column(default=None)
+    created: Mapped[datetime | None] = mapped_column(default=None)
+    last_update: Mapped[datetime | None] = mapped_column(default=None)
+    collection_id: Mapped[int | None] = mapped_column(
+        ForeignKey("collections.id"), default=None
+    )
+    tags: Mapped[list[str] | None] = mapped_column(JSON, default=None)
+    summary: Mapped[str | None] = mapped_column(default=None)
+
+    collection: Mapped["Collection | None"] = relationship(back_populates="raindrops")
+
 
 class Update(Base):
     __tablename__ = "update"
-    id = Column(Integer, primary_key=True)
-    last_update = Column(DateTime)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    last_update: Mapped[datetime | None] = mapped_column(default=None)
