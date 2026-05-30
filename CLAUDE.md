@@ -35,6 +35,8 @@ CI (`.github/workflows/python-app.yml`) runs `ruff check`, `ty check`, and `pyte
 - `RAINDROP` — Raindrop.io API token (read by `RaindropAPI.__init__` via `os.environ["RAINDROP"]`; **the name is `RAINDROP`, not `RAINDROP_TOKEN`**).
 - `ANTHROPIC_API_KEY` — used by `ClaudeSummaryProvider` to summarize bookmarks.
 
+Both may be supplied via a `.env` file: `main()` calls `_load_environment()` (in `app.py`), which runs `python-dotenv`'s `load_dotenv(find_dotenv(usecwd=True))` before validating the two vars, then raises `SystemExit` with a clear message if either is missing. Real environment variables take precedence over `.env` (`override=False`). `.env` is gitignored; `.env.example` is the tracked template.
+
 The SQLite cache lives under the platform cache dir (`platformdirs.user_cache_dir("avocet")`), not the working directory.
 
 ## Architecture

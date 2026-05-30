@@ -147,3 +147,6 @@ ganglion.toml
 # Local SQLite cache
 *.sqlite
 *.sqlite3
+
+# pytest-textual-snapshot failure report
+snapshot_report.html

@@ -17,6 +17,7 @@ dependencies = [
     "sqlalchemy>=2.0",
     "anthropic>=0.40",
     "platformdirs>=4.0",
+    "python-dotenv>=1.0",
 ]
 
 [project.scripts]

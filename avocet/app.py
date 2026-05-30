@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import webbrowser
 
+from dotenv import find_dotenv, load_dotenv
 from sqlalchemy import create_engine
 from textual import on, work
 from textual.app import App, ComposeResult
@@ -329,13 +330,25 @@ class Avocet(App):
         self._populate_table(self._current_collection_id, tag=tag)
 
 
-def main() -> None:
+def _load_environment() -> None:
+    # Load a local .env (searching up from the working directory) so credentials
+    # can live in a file instead of the shell. Real environment variables win
+    # over .env values (load_dotenv defaults to override=False).
+    load_dotenv(find_dotenv(usecwd=True))
     if "RAINDROP" not in os.environ:
-        raise SystemExit("Set the RAINDROP environment variable to your Raindrop.io API token.")
+        raise SystemExit(
+            "RAINDROP is not set. Export it or add it to a .env file "
+            "(your Raindrop.io API token)."
+        )
     if "ANTHROPIC_API_KEY" not in os.environ:
         raise SystemExit(
-            "Set the ANTHROPIC_API_KEY environment variable for bookmark summarization."
+            "ANTHROPIC_API_KEY is not set. Export it or add it to a .env file "
+            "(used for bookmark summarization)."
         )
+
+
+def main() -> None:
+    _load_environment()
     Avocet().run()
 
 

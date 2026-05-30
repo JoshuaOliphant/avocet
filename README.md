@@ -13,7 +13,9 @@ Avocet is a TUI for browsing your [Raindrop.io](https://raindrop.io) bookmarks. 
 
 1. Clone the repo.
 2. `uv sync` (or `just install`) to install dependencies.
-3. Set the required environment variables:
+3. Provide the required credentials, either as environment variables or in a `.env`
+   file (copy `.env.example` to `.env` and fill it in — exported variables take
+   precedence over `.env`):
    - `RAINDROP` — your Raindrop.io API token (from app.raindrop.io/settings/integrations).
    - `ANTHROPIC_API_KEY` — your Anthropic API key (used to summarize bookmarks).
 4. `just run` (or `uv run textual run --dev avocet/app.py`).
