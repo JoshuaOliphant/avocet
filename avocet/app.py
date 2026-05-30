@@ -30,7 +30,12 @@ from avocet.screens import (
     SearchScreen,
     TagFilterScreen,
 )
-from avocet.summary import ClaudeSummaryProvider, SummaryProvider
+from avocet.summary import (
+    SUMMARY_PROVIDER_KEYS,
+    SummaryProvider,
+    create_summary_provider,
+    resolve_provider_name,
+)
 
 CATPPUCCIN_MOCHA = Theme(
     name="catppuccin-mocha",
@@ -93,7 +98,7 @@ class Avocet(App):
     ) -> None:
         super().__init__()
         self.db = db or _default_db()
-        self.summary_provider = summary_provider or ClaudeSummaryProvider()
+        self.summary_provider = summary_provider or create_summary_provider()
         self.api = api
         self._row_to_raindrop: dict[str, int] = {}
         self._current_collection_id: int | None = None
@@ -354,10 +359,16 @@ def _load_environment() -> None:
             "RAINDROP is not set. Export it or add it to a .env file "
             "(your Raindrop.io API token)."
         )
-    if "ANTHROPIC_API_KEY" not in os.environ:
+    try:
+        provider = resolve_provider_name()
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+    required_key = SUMMARY_PROVIDER_KEYS[provider]
+    if required_key not in os.environ:
         raise SystemExit(
-            "ANTHROPIC_API_KEY is not set. Export it or add it to a .env file "
-            "(used for bookmark summarization)."
+            f"{required_key} is not set. The '{provider}' summary provider needs it. "
+            "Export it or add it to a .env file, or set AVOCET_SUMMARY_PROVIDER to a "
+            "provider whose key you have."
         )
 
 

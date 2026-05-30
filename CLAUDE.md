@@ -33,9 +33,12 @@ CI (`.github/workflows/python-app.yml`) runs `ruff check`, `ty check`, and `pyte
 ## Required environment variables
 
 - `RAINDROP` — Raindrop.io API token (read by `RaindropAPI.__init__` via `os.environ["RAINDROP"]`; **the name is `RAINDROP`, not `RAINDROP_TOKEN`**).
-- `ANTHROPIC_API_KEY` — used by `ClaudeSummaryProvider` to summarize bookmarks.
+- **One** summary-provider key: `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`.
+- Optional `AVOCET_SUMMARY_PROVIDER` (`anthropic`|`openai`) and `AVOCET_SUMMARY_MODEL` (model id).
 
-Both may be supplied via a `.env` file: `main()` calls `_load_environment()` (in `app.py`), which runs `python-dotenv`'s `load_dotenv(find_dotenv(usecwd=True))` before validating the two vars, then raises `SystemExit` with a clear message if either is missing. Real environment variables take precedence over `.env` (`override=False`). `.env` is gitignored; `.env.example` is the tracked template.
+**Provider selection** lives in `summary.py`: `resolve_provider_name()` returns the explicit `AVOCET_SUMMARY_PROVIDER` if set, else auto-detects from whichever key is present (anthropic preferred when both are). `create_summary_provider()` builds the matching real provider (`ClaudeSummaryProvider` / `OpenAISummaryProvider`), applying `AVOCET_SUMMARY_MODEL` over the per-provider default (`CLAUDE_MODEL` / `OPENAI_MODEL`). Both real providers share `_LLMSummaryProvider` (page fetch + prompt orchestration) and only implement `_complete()`. `Avocet.__init__` calls the factory when no provider is injected.
+
+These may be supplied via a `.env` file: `main()` calls `_load_environment()` (in `app.py`), which runs `python-dotenv`'s `load_dotenv(find_dotenv(usecwd=True))`, then requires `RAINDROP` and the selected provider's key, raising `SystemExit` with a clear message otherwise. Real environment variables take precedence over `.env` (`override=False`). `.env` is gitignored; `.env.example` is the tracked template.
 
 The SQLite cache lives under the platform cache dir (`platformdirs.user_cache_dir("avocet")`), not the working directory.
 

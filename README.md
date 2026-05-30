@@ -2,7 +2,7 @@
 
 # Avocet
 
-Avocet is a TUI for browsing your [Raindrop.io](https://raindrop.io) bookmarks. It is written in Python with the [Textual](https://textual.textualize.io) framework. It syncs your collections and bookmarks into a local SQLite cache, generates a concise summary of a bookmark with [Claude](https://www.anthropic.com/claude) the first time you open it (cached thereafter), and opens links in your default browser.
+Avocet is a TUI for browsing your [Raindrop.io](https://raindrop.io) bookmarks. It is written in Python with the [Textual](https://textual.textualize.io) framework. It syncs your collections and bookmarks into a local SQLite cache, generates a concise summary of a bookmark — using either [Anthropic Claude](https://www.anthropic.com/claude) or [OpenAI](https://openai.com) — the first time you open it (cached thereafter), and opens links in your default browser.
 
 ## Requirements
 
@@ -17,7 +17,10 @@ Avocet is a TUI for browsing your [Raindrop.io](https://raindrop.io) bookmarks. 
    file (copy `.env.example` to `.env` and fill it in — exported variables take
    precedence over `.env`):
    - `RAINDROP` — your Raindrop.io API token (from app.raindrop.io/settings/integrations).
-   - `ANTHROPIC_API_KEY` — your Anthropic API key (used to summarize bookmarks).
+   - A summary provider key — set **one** of `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`.
+     Avocet auto-detects which to use from the key you provide (Anthropic wins if both
+     are set). Override with `AVOCET_SUMMARY_PROVIDER=anthropic|openai`, and the model
+     with `AVOCET_SUMMARY_MODEL` (defaults: `claude-haiku-4-5` / `gpt-5-mini`).
 4. `just run` (or `uv run textual run --dev avocet/app.py`).
 5. Navigate with the arrow keys. Move focus between the collections sidebar and the
    bookmarks table; press Enter on a bookmark to view its details — a Claude summary is
