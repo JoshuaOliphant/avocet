@@ -164,16 +164,19 @@ class Avocet(App):
 
     @work(exclusive=True)
     async def _generate_summary(self, raindrop_id: int) -> None:
-        raindrop = self.db.get_raindrop(raindrop_id)
-        if raindrop is None:
-            return
-        summary = await self.summary_provider.summarize(raindrop)
-        self.db.set_summary(raindrop_id, summary)
-        table = self.query_one("#bookmarks", DataTable)
-        if table.row_count:
-            cell_key = table.coordinate_to_cell_key(table.cursor_coordinate)
-            if str(cell_key.row_key.value) == str(raindrop_id):
-                self.query_one("#detail-summary", Static).update(summary)
+        try:
+            raindrop = self.db.get_raindrop(raindrop_id)
+            if raindrop is None:
+                return
+            summary = await self.summary_provider.summarize(raindrop)
+            self.db.set_summary(raindrop_id, summary)
+            table = self.query_one("#bookmarks", DataTable)
+            if table.row_count:
+                cell_key = table.coordinate_to_cell_key(table.cursor_coordinate)
+                if str(cell_key.row_key.value) == str(raindrop_id):
+                    self.query_one("#detail-summary", Static).update(summary)
+        except Exception as exc:  # noqa: BLE001 — surface any failure to the user
+            self.query_one("#detail-summary", Static).update(f"Summary unavailable: {exc}")
 
     def _selected_raindrop(self) -> Raindrop | None:
         table = self.query_one("#bookmarks", DataTable)
@@ -195,15 +198,22 @@ class Avocet(App):
 
     @work(exclusive=True, group="sync")
     async def _sync(self) -> None:
-        assert self.api is not None
-        collections = await self.api.get_collections()
-        for collection in collections:
-            self.db.upsert_collection(collection)
-            items = await self.api.get_raindrops_by_collection_id(collection["_id"])
-            self.db.upsert_raindrops(items, collection["_id"])
-        self.db.touch_last_update()
-        self._load_collections()
-        self.notify("Synced from Raindrop.io")
+        try:
+            if self.api is None:
+                self.api = RaindropAPI()
+            collections = await self.api.get_collections()
+            for collection in collections:
+                if collection["_id"] in (0, -1):
+                    continue
+                self.db.upsert_collection(collection)
+                items = await self.api.get_raindrops_by_collection_id(collection["_id"])
+                self.db.upsert_raindrops(items, collection["_id"])
+            self.db.touch_last_update()
+            self._load_collections()
+            self.notify("Synced from Raindrop.io")
+        except Exception as exc:  # noqa: BLE001 — surface any failure to the user
+            self._load_collections()
+            self.notify(f"Sync failed: {exc}", severity="error")
 
     def action_search(self) -> None:
         def on_close(query: str | None) -> None:
@@ -214,11 +224,14 @@ class Avocet(App):
 
     @work(exclusive=True, group="search")
     async def _do_search(self, collection_id: int, query: str) -> None:
-        if self.api is None:
-            self.api = RaindropAPI()
-        items = await self.api.get_raindrops_by_collection_id(collection_id, search=query)
-        self.db.upsert_raindrops(items, collection_id)
-        self._populate_table(collection_id)
+        try:
+            if self.api is None:
+                self.api = RaindropAPI()
+            items = await self.api.get_raindrops_by_collection_id(collection_id, search=query)
+            self.db.upsert_raindrops(items, collection_id)
+            self._populate_table(collection_id)
+        except Exception as exc:  # noqa: BLE001 — surface any failure to the user
+            self.notify(f"Search failed: {exc}", severity="error")
 
     def action_add(self) -> None:
         if self._current_collection_id is None:
@@ -232,12 +245,15 @@ class Avocet(App):
 
     @work(exclusive=True, group="crud")
     async def _do_add(self, result: AddResult) -> None:
-        if self.api is None:
-            self.api = RaindropAPI()
-        item = await self.api.add_raindrop(result.link, result.collection_id, result.tags)
-        self.db.upsert_raindrops([item], result.collection_id)
-        self._populate_table(result.collection_id)
-        self.notify("Bookmark added")
+        try:
+            if self.api is None:
+                self.api = RaindropAPI()
+            item = await self.api.add_raindrop(result.link, result.collection_id, result.tags)
+            self.db.upsert_raindrops([item], result.collection_id)
+            self._populate_table(result.collection_id)
+            self.notify("Bookmark added")
+        except Exception as exc:  # noqa: BLE001 — surface any failure to the user
+            self.notify(f"Add failed: {exc}", severity="error")
 
     def action_edit(self) -> None:
         raindrop = self._selected_raindrop()
@@ -254,15 +270,18 @@ class Avocet(App):
 
     @work(exclusive=True, group="crud")
     async def _do_edit(self, result: EditResult) -> None:
-        if self.api is None:
-            self.api = RaindropAPI()
-        item = await self.api.update_raindrop(
-            result.raindrop_id, {"title": result.title, "tags": result.tags}
-        )
-        if self._current_collection_id is not None:
-            self.db.upsert_raindrops([item], self._current_collection_id)
-            self._populate_table(self._current_collection_id)
-        self.notify("Bookmark updated")
+        try:
+            if self.api is None:
+                self.api = RaindropAPI()
+            item = await self.api.update_raindrop(
+                result.raindrop_id, {"title": result.title, "tags": result.tags}
+            )
+            if self._current_collection_id is not None:
+                self.db.upsert_raindrops([item], self._current_collection_id)
+                self._populate_table(self._current_collection_id)
+            self.notify("Bookmark updated")
+        except Exception as exc:  # noqa: BLE001 — surface any failure to the user
+            self.notify(f"Edit failed: {exc}", severity="error")
 
     def action_delete(self) -> None:
         raindrop = self._selected_raindrop()
@@ -277,13 +296,16 @@ class Avocet(App):
 
     @work(exclusive=True, group="crud")
     async def _do_delete(self, raindrop_id: int) -> None:
-        if self.api is None:
-            self.api = RaindropAPI()
-        await self.api.delete_raindrop(raindrop_id)
-        self.db.remove_raindrop(raindrop_id)
-        if self._current_collection_id is not None:
-            self._populate_table(self._current_collection_id)
-        self.notify("Bookmark deleted")
+        try:
+            if self.api is None:
+                self.api = RaindropAPI()
+            await self.api.delete_raindrop(raindrop_id)
+            self.db.remove_raindrop(raindrop_id)
+            if self._current_collection_id is not None:
+                self._populate_table(self._current_collection_id)
+            self.notify("Bookmark deleted")
+        except Exception as exc:  # noqa: BLE001 — surface any failure to the user
+            self.notify(f"Delete failed: {exc}", severity="error")
 
     def action_filter_tag(self) -> None:
         def on_close(tag: str | None) -> None:
@@ -301,6 +323,10 @@ class Avocet(App):
 def main() -> None:
     if "RAINDROP" not in os.environ:
         raise SystemExit("Set the RAINDROP environment variable to your Raindrop.io API token.")
+    if "ANTHROPIC_API_KEY" not in os.environ:
+        raise SystemExit(
+            "Set the ANTHROPIC_API_KEY environment variable for bookmark summarization."
+        )
     Avocet().run()
 
 

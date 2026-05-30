@@ -40,6 +40,7 @@ class ClaudeSummaryProvider:
     async def _fetch_page_text(self, url: str) -> str:
         async with httpx.AsyncClient(follow_redirects=True, timeout=20.0) as client:
             response = await client.get(url)
+            response.raise_for_status()
             return response.text[:20000]
 
     async def summarize(self, raindrop: Raindrop) -> str:
