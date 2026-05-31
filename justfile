@@ -1,29 +1,33 @@
 set positional-arguments
 
 alias r := run
-alias s := shell
-alias c := console
-alias i := install
 alias t := test
-alias p := push
-
-shell:
-	poetry shell
+alias i := install
+alias l := lint
 
 install:
-	poetry install
+	uv sync
 
 run:
-	poetry run textual run --dev avocet/app.py
+	uv run textual run --dev avocet/app.py
 
 console:
-	textual console
+	uv run textual console
 
 test:
-    poetry run pytest
+	uv run pytest
 
-push:
-    git push origin main
+snapshot-update:
+	uv run pytest --snapshot-update
+
+lint:
+	uv run ruff check .
+
+format:
+	uv run ruff format .
+
+typecheck:
+	uv run ty check
 
 commit message:
-    git commit -am {{message}}
+	git commit -am "$1"
