@@ -1,51 +1,102 @@
+# ABOUTME: Tests for the async Raindrop API client using pytest-httpx.
+# ABOUTME: Proves pagination assembles all pages and nested+system collections are included.
+import json
+
+import httpx
 import pytest
 from pytest_httpx import HTTPXMock
+
 from avocet.raindrop_api import RaindropAPI
+
+BASE = "https://api.raindrop.io/rest/v1"
+
 
 @pytest.fixture
 def api(monkeypatch):
-    monkeypatch.setenv("RAINDROP", "fake_token_value")
+    monkeypatch.setenv("RAINDROP", "fake-token")
     return RaindropAPI()
 
-@pytest.mark.asyncio
-async def test_get_collections(api: RaindropAPI, httpx_mock: HTTPXMock):
-    # Mock the HTTP response
-    httpx_mock.add_response(url="https://api.raindrop.io/rest/v1/collections", json={"items": [{"id": "1", "title": "Collection 1"}, {"id": "2", "title": "Collection 2"}]})
 
-    # Call the method being tested
+async def test_get_collections_merges_root_children_and_system(api, httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url=f"{BASE}/collections",
+        json={"items": [{"_id": 1, "title": "Root"}]},
+    )
+    httpx_mock.add_response(
+        url=f"{BASE}/collections/childrens",
+        json={"items": [{"_id": 2, "title": "Child", "parent": {"$id": 1}}]},
+    )
     collections = await api.get_collections()
+    ids = {c["_id"] for c in collections}
+    assert {0, 1, 2} <= ids  # 0 is the synthetic "All" system collection
 
-    # Check the result
-    assert len(collections) == 2
-    assert collections[0]["id"] == "1"
-    assert collections[0]["title"] == "Collection 1"
-    assert collections[1]["id"] == "2"
-    assert collections[1]["title"] == "Collection 2"
 
-@pytest.mark.asyncio
-async def test_get_raindrops_by_collection_id(api: RaindropAPI, httpx_mock: HTTPXMock):
-    # Mock the HTTP response
-    httpx_mock.add_response(url="https://api.raindrop.io/rest/v1/raindrops/1", json={"items": [{"id": "1", "title": "Raindrop 1"}, {"id": "2", "title": "Raindrop 2"}]})
+async def test_get_raindrops_paginates(api, httpx_mock: HTTPXMock):
+    page0 = {"items": [{"_id": i} for i in range(50)]}
+    page1 = {"items": [{"_id": i} for i in range(50, 73)]}  # < perpage -> last page
+    httpx_mock.add_response(url=f"{BASE}/raindrops/1?perpage=50&page=0", json=page0)
+    httpx_mock.add_response(url=f"{BASE}/raindrops/1?perpage=50&page=1", json=page1)
+    items = await api.get_raindrops_by_collection_id(1)
+    assert len(items) == 73
 
-    # Call the method being tested
-    raindrops = await api.get_raindrops_by_collection_id("1")
 
-    # Check the result
-    assert len(raindrops) == 2
-    assert raindrops[0]["id"] == "1"
-    assert raindrops[0]["title"] == "Raindrop 1"
-    assert raindrops[1]["id"] == "2"
-    assert raindrops[1]["title"] == "Raindrop 2"
+async def test_sends_bearer_token(api, httpx_mock: HTTPXMock):
+    httpx_mock.add_response(url=f"{BASE}/raindrops/1?perpage=50&page=0", json={"items": []})
+    await api.get_raindrops_by_collection_id(1)
+    request = httpx_mock.get_requests()[0]
+    assert request.headers["Authorization"] == "Bearer fake-token"
 
-@pytest.mark.asyncio
-async def test_get_raindrop_by_raindrop_id(api: RaindropAPI, httpx_mock: HTTPXMock):
-    # Mock the HTTP response
-    httpx_mock.add_response(url="https://api.raindrop.io/rest/v1/raindrop/1", 
-                            json={"item":{"id": "1", "title": "Raindrop 1", "excerpt": "Excerpt 1", "link": "https://example.com/1", "tags": ["tag1", "tag2"]}})
 
-    # Call the method being tested
-    raindrop = await api.get_raindrop_by_raindrop_id("1")
+async def test_add_raindrop_without_title_asks_raindrop_to_parse(api, httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url=f"{BASE}/raindrop", method="POST", json={"item": {"_id": 99, "link": "https://x"}}
+    )
+    result = await api.add_raindrop("https://x", 1, ["py"])
+    assert result["_id"] == 99
+    request = httpx_mock.get_requests()[0]
+    assert request.method == "POST"
+    body = json.loads(request.content)
+    assert body == {"link": "https://x", "collectionId": 1, "tags": ["py"], "pleaseParse": {}}
 
-    # Check the result
-    assert raindrop["id"] == "1"
-    assert raindrop["title"] == "Raindrop 1"
+
+async def test_add_raindrop_with_title_sends_title_not_parse(api, httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url=f"{BASE}/raindrop", method="POST", json={"item": {"_id": 99, "title": "Mine"}}
+    )
+    await api.add_raindrop("https://x", 1, ["py"], title="Mine")
+    body = json.loads(httpx_mock.get_requests()[0].content)
+    assert body == {"link": "https://x", "collectionId": 1, "tags": ["py"], "title": "Mine"}
+    assert "pleaseParse" not in body
+
+
+async def test_update_raindrop_puts_fields(api, httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url=f"{BASE}/raindrop/42", method="PUT", json={"item": {"_id": 42, "title": "New"}}
+    )
+    result = await api.update_raindrop(42, {"title": "New", "tags": ["a"]})
+    assert result["title"] == "New"
+    request = httpx_mock.get_requests()[0]
+    assert request.method == "PUT"
+    assert json.loads(request.content) == {"title": "New", "tags": ["a"]}
+
+
+async def test_delete_raindrop_issues_delete(api, httpx_mock: HTTPXMock):
+    httpx_mock.add_response(url=f"{BASE}/raindrop/42", method="DELETE", json={"result": True})
+    await api.delete_raindrop(42)
+    assert httpx_mock.get_requests()[0].method == "DELETE"
+
+
+async def test_get_raindrop_reads_item(api, httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url=f"{BASE}/raindrop/7", json={"item": {"_id": 7, "title": "Seven"}}
+    )
+    result = await api.get_raindrop(7)
+    assert result["_id"] == 7
+
+
+@pytest.mark.httpx_mock(assert_all_responses_were_requested=False)
+async def test_error_status_raises(api, httpx_mock: HTTPXMock):
+    # A 401 must raise, not silently return an empty list (the bug this fixes).
+    httpx_mock.add_response(url=f"{BASE}/collections", status_code=401, json={"error": "no"})
+    with pytest.raises(httpx.HTTPStatusError):
+        await api.get_collections()

@@ -1,40 +1,59 @@
-[tool.poetry]
+[project]
 name = "avocet"
-version = "0.1.0"
+version = "1.0.0"
 description = "A TUI for Raindrop.io bookmarks written in Python"
-authors = ["Joshua Oliphant <joshua.oliphant@hey.com>"]
+authors = [{ name = "Joshua Oliphant", email = "joshua.oliphant@hey.com" }]
 readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+dependencies = [
+    "textual>=8.2,<9",
+    "httpx>=0.28",
+    "sqlalchemy>=2.0",
+    "anthropic>=0.40",
+    "openai>=1.40",
+    "platformdirs>=4.0",
+    "python-dotenv>=1.0",
+]
 
-[tool.poetry.dependencies]
-python = "^3.11"
-rich = "^13.1.0"
-httpx = "^0.24.1"
-pytest = "^7.3.0"
-textual = "^0.37.1"
-sqlalchemy = "^2.0.19"
-openai = "^0.27.10"
-langchain = "^0.0.278"
-docarray = "^0.37.1"
-tiktoken = "^0.4.0"
-html2text = "^2020.1.16"
-chromadb = "^0.4.10"
+[project.scripts]
+avocet = "avocet.app:main"
 
-[tool.poetry.group.test.dependencies]
-pytest = "^7.3.0"
-pytest-httpx = "^0.23.1"
-pytest-asyncio = "^0.21.1"
-asynctest = "^0.13.0"
-pytest-mock = "^3.10.0"
-
-[tool.poetry.group.dev.dependencies]
-flake8 = "^6.0.0"
-textual-dev = "^1.0.1"
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "pytest-httpx>=0.35",
+    "pytest-mock>=3.14",
+    "pytest-textual-snapshot>=1.0",
+    "textual-dev>=1.7",
+    "ruff>=0.8",
+    "ty>=0.0.1a1",
+]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["avocet"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = [".", "tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ty.environment]
+python-version = "3.12"
