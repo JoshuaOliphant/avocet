@@ -78,3 +78,24 @@ All modules under `avocet/` use **package imports** (`from avocet.models import 
 - **Visual regression.** `tests/test_snapshots.py` uses `pytest-textual-snapshot` (`snap_compare`) against `tests/snapshot_apps/seeded_app.py` (a deterministic seeded launcher). Baselines live under `tests/__snapshots__/`. Regenerate with `just snapshot-update` only after visually confirming an intended UI change.
 
 `asyncio_mode = "auto"` is set, so `async def test_*` runs without a marker.
+
+## Versioning & changelog
+
+This project follows [Semantic Versioning](https://semver.org) and keeps a
+[Keep a Changelog](https://keepachangelog.com)-style `CHANGELOG.md`.
+
+- **As you make a user-facing change** (a feature, behavior change, or bug fix —
+  not docs/refactor/test-only commits), add a one-line entry under the
+  `## [Unreleased]` section of `CHANGELOG.md`, grouped under Added / Changed /
+  Fixed / Removed. Keeping this current as you go avoids reconstructing it at
+  release time.
+- **The version lives in `pyproject.toml`** (`[project].version`). There is no
+  `__version__` in the package. Bump it per SemVer: patch for fixes, minor for
+  backwards-compatible features, major for breaking changes.
+- **When you bump the version, re-run `uv lock`** (or `just install`) and commit
+  the updated `uv.lock` — its `avocet` entry mirrors the version, and CI runs
+  `uv sync --locked`, which fails on drift. `uv lock --check` catches this.
+- **At release time**, rename `## [Unreleased]` to `## [x.y.z] - YYYY-MM-DD`,
+  bump `pyproject.toml`, re-lock, then tag on the default branch *after* the PR
+  merges: `git tag -a vX.Y.Z -m "vX.Y.Z" && git push origin vX.Y.Z` (tag `main`,
+  not a feature branch that may be squashed/rebased).

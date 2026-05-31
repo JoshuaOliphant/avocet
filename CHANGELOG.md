@@ -4,6 +4,11 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+_Nothing yet. Add a line here under Added / Changed / Fixed / Removed for any
+user-facing change; at release time, rename this section to the new version._
+
 ## [1.0.0] - 2026-05-30
 
 A ground-up modernization of Avocet. The app keeps its purpose — a terminal UI for
