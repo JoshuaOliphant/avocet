@@ -150,3 +150,6 @@ ganglion.toml
 
 # pytest-textual-snapshot failure report
 snapshot_report.html
+
+# Claude Code hook output
+logs/
