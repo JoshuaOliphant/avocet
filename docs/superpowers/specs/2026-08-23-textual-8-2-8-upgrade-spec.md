@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-23
 **Source:** converted from the research plan of the same date
-**Status:** partially executed — see Further Notes before starting
+**Status:** executed and merged; one follow-up remains — see Further Notes
 
 ## Problem Statement
 
@@ -217,28 +217,17 @@ is why merge is gated on it rather than on the local result.
 
 ## Further Notes
 
-**Execution status — read this before starting.** The core upgrade has already been
-performed and committed on a dedicated branch: the lockfile was re-resolved for
-Textual alone, the diff confirmed to touch only that package, and the full
-verification pass run green — the complete test suite passing with the visual
-baselines matching unmodified, and lint and type checks clean. The installed
-version was confirmed directly rather than inferred.
+**Execution status.** The upgrade is done and on `main` via PR #15. The lockfile was
+re-resolved for Textual alone, the diff confirmed to touch only that package, and the
+full verification pass run green — the complete test suite passing with the visual
+baselines matching unmodified, and lint and type checks clean. The installed version
+was confirmed directly rather than inferred. Both supported Python versions exercised
+the upgrade in CI, and the two user-visible upstream fixes are recorded under
+`## [Unreleased]` in `CHANGELOG.md`.
 
 What remains open:
 
-- The changelog judgment call has not been made; the Unreleased section is still
-  empty.
-- The branch has not been opened as a pull request or merged, so the second
-  supported Python version has not yet exercised the upgrade.
-- Dependency-freshness automation does not exist.
-
-**Documentation in this repository is currently untrackable.** The ignore rules
-exclude the entire documentation directory — evidently aimed at a vector-store
-subdirectory left over from an earlier architecture, but written broadly enough to
-swallow everything alongside it. The existing plan and design documents are tracked
-only because they were force-added, and this spec has the same problem. Narrowing
-the rule to the subdirectory it was meant for is the real fix and is worth doing
-before more documentation is written against an ignore rule nobody remembers.
+- Dependency-freshness automation does not exist. Tracked as issue #14.
 
 **The upper bound is the thing to watch.** The declared range excludes the next
 major version, which does not yet exist in any form — no release, no pre-release.

@@ -156,5 +156,5 @@ The `<9` ceiling is the thing to watch, not this bump. When 9.0 ships it will ne
 
 ## 8. Notes for whoever picks this up
 
-- **`docs/` is gitignored.** `.gitignore:143` contains `docs/*` (under a `# chroma` comment, evidently aimed at the `docs/chroma/` vector store). The existing `docs/superpowers/` plan and spec are tracked only because they were force-added. **This file needs `git add -f docs/superpowers/plans/2026-08-23-textual-8-2-8-upgrade.md`** or it will silently never be committed. That is a papercut worth fixing properly — narrow the ignore to `docs/chroma/`.
+- **`docs/` is tracked.** The ignore rule covers only `docs/chroma/`, the vector store, so documents written here commit normally without `-f`.
 - **Automation gap:** nothing in `.github/workflows/python-app.yml` notices that a dependency has a newer release. This delta sat for ~8 weeks (8.2.8 released 2026-06-30) with no signal. A Dependabot or Renovate config for `uv` — or a scheduled `uv lock --upgrade --dry-run` job — would have raised it automatically.
