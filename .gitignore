@@ -139,8 +139,8 @@ avocet.sqlite
 # vs code
 .vscode
 
-# chroma
-docs/*
+# chroma vector store (pre-1.0 architecture leftover); the rest of docs/ is tracked
+docs/chroma/
 
 ganglion.toml
 
