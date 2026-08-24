@@ -6,8 +6,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-_Nothing yet. Add a line here under Added / Changed / Fixed / Removed for any
-user-facing change; at release time, rename this section to the new version._
+### Fixed
+- Extended key sequences spanning multiple codepoints are no longer mis-parsed in
+  terminals using the Kitty keyboard protocol (via Textual 8.2.8).
+- Clicking in a screen's padding no longer crashes the app (via Textual 8.2.8).
 
 ## [1.0.0] - 2026-05-30
 
