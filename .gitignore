@@ -152,4 +152,4 @@ ganglion.toml
 snapshot_report.html
 
 # Claude Code hook output
-logs/
+/logs/
