@@ -139,8 +139,8 @@ avocet.sqlite
 # vs code
 .vscode
 
-# chroma
-docs/*
+# chroma vector store, left over from the pre-1.0 architecture
+docs/chroma/
 
 ganglion.toml
 
@@ -150,3 +150,6 @@ ganglion.toml
 
 # pytest-textual-snapshot failure report
 snapshot_report.html
+
+# Claude Code hook output
+/logs/
