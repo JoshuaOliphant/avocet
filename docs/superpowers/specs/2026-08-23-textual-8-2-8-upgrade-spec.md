@@ -230,7 +230,7 @@ What remains open:
 - Dependency-freshness automation does not exist. Tracked as issue #14.
 
 **The upper bound is the thing to watch.** The declared range excludes the next
-major version, which does not yet exist in any form — no release, no pre-release.
+major version, which as of 2026-08-23 did not exist in any form — no release, no pre-release.
 When it lands it will need a genuine read of its breaking-change section rather
 than a repeat of this spec. Recent majors from this project have been light on
 breaking changes, but that is an observed pattern and not a guarantee.

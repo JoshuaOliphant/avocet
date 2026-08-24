@@ -1,8 +1,10 @@
 # Textual 8.2.8 Upgrade Research & Plan
 
+**Status:** Executed and merged via PR #15. Sections 1-6 are a point-in-time research record from the date below; section 7 records the steps as carried out. The only item still open is dependency-freshness automation, tracked as issue #14.
+
 **Goal:** Establish the current released Textual version, the gap to what Avocet ships, and what it actually takes to close it.
 
-**Headline:** The gap is one patch release — `8.2.7` → `8.2.8`. There are **no breaking changes**, **no code changes**, and **no snapshot regeneration** required. The whole upgrade is `uv lock --upgrade-package textual` plus a CI run.
+**Headline:** The gap was one patch release — `8.2.7` → `8.2.8`. There were **no breaking changes**, **no code changes**, and **no snapshot regeneration** required. The whole upgrade was `uv lock --upgrade-package textual` plus a CI run.
 
 **Verification status:** Every version claim below is from PyPI's JSON API or the Textualize/textual repo. The "nothing breaks" claim is not inferred from the changelog alone — the full suite was run against 8.2.8 in an ephemeral overlay environment (see [Proof](#proof-i-actually-ran-it)).
 
@@ -19,7 +21,7 @@
 | `requires_python` | **`<4.0,>=3.9`** | same JSON, `.info.requires_python` |
 | Git tag | `v8.2.8` @ `1d99508b92`, published `2026-06-30T06:53:30Z` | [releases/tag/v8.2.8](https://github.com/Textualize/textual/releases/tag/v8.2.8) |
 
-There is **no 9.x release and no 9.x pre-release**. Checking every key in `.releases` for non-`X.Y.Z` version strings returns only ancient 0.x alphas/betas (`0.2.0b4` … `0.72.0a1`); the newest tags on GitHub are `v8.2.8, v8.2.7, v8.2.6, …`. The project's `<9` ceiling is therefore not currently binding on anything.
+As of 2026-08-23 there was **no 9.x release and no 9.x pre-release**. Checking every key in `.releases` for non-`X.Y.Z` version strings returns only ancient 0.x alphas/betas (`0.2.0b4` … `0.72.0a1`); the newest tags on GitHub are `v8.2.8, v8.2.7, v8.2.6, …`. The project's `<9` ceiling is therefore not currently binding on anything.
 
 The `main`-branch [CHANGELOG.md](https://raw.githubusercontent.com/Textualize/textual/main/CHANGELOG.md) opens directly with `## [8.2.8] - 2026-06-30` — there is no `Unreleased` section accumulating undelivered work.
 
@@ -28,14 +30,14 @@ The `main`-branch [CHANGELOG.md](https://raw.githubusercontent.com/Textualize/te
 | Where | Value | Source |
 |---|---|---|
 | Declared range | `textual>=8.2,<9` | `pyproject.toml:15` |
-| Resolved in lock | **`8.2.7`** | `uv.lock:1230-1231` (`[[package]] name = "textual"` / `version = "8.2.7"`) |
-| Actually installed | `8.2.7` | `./.venv/bin/python -c "import textual; print(textual.__version__)"` |
+| Resolved in lock, before the upgrade | **`8.2.7`** | `uv.lock` `[[package]] name = "textual"`; now `8.2.8` at `uv.lock:1230-1231` |
+| Installed, before the upgrade | `8.2.7` | `./.venv/bin/python -c "import textual; print(textual.__version__)"`; now prints `8.2.8` |
 | Project floor | `requires-python = ">=3.12"` | `pyproject.toml:7` |
 | CI matrix | `["3.12", "3.13"]` on `ubuntu-latest` | `.github/workflows/python-app.yml:17` |
 
-CI runs `uv sync --locked`, so the lock is authoritative and drift fails the build (`.github/workflows/python-app.yml:25`). `uv lock --check` passes right now — the lock is in sync with `pyproject.toml`, so the only pending change is the deliberate one.
+CI runs `uv sync --locked`, so the lock is authoritative and drift fails the build (`.github/workflows/python-app.yml:25`).
 
-Because `8.2.8` already satisfies `>=8.2,<9`, **`pyproject.toml` does not need to be edited**. Only `uv.lock` moves.
+Because `8.2.8` already satisfies `>=8.2,<9`, **`pyproject.toml` did not need to be edited**. Only `uv.lock` moved.
 
 ## 3. The delta, read from Textual's own changelog
 
@@ -73,7 +75,7 @@ Avocet instantiates `Input` in five places: `avocet/screens.py:40-42` (add-bookm
 The fix is in mouse-event forwarding for text selection. Avocet's stylesheet sets `padding: 0 1` only on `#detail` (`avocet/avocet.tcss:19`), never on `Screen`, and no test uses mouse input at all: `grep -rn 'pilot.click\|hover' tests/` returns nothing. All interaction tests drive the keyboard (`pilot.press`).
 
 **c. `Pilot._post_mouse_events` bounds check (`screen.region` → `screen.size.region`) — dead code path here.**
-Same reason as (b): the eight `run_test()` call sites (`tests/test_app_interaction.py:39`, `tests/test_app_search_edit.py:53,68,93,116,129`, `tests/test_app_sync.py:33`, plus `snap_compare` internals) never post mouse events.
+Same reason as (b): no `run_test()` call site across `tests/` posts mouse events, and neither do `snap_compare` internals.
 
 **d. Kitty key-protocol parsing (#6592) — runtime-terminal only.**
 `_xterm_parser` handles real terminal input. Under `run_test()`/`snap_compare` keys are injected through `Pilot`, not parsed from escape sequences, so the test suite is untouched. This one only affects `just run` in a Kitty-protocol terminal — and only as a fix.
@@ -129,15 +131,17 @@ All 57 tests pass and **all 5 snapshots match unmodified baselines** on 8.2.8. `
 
 Caveat on scope: this was Python 3.12.7 on macOS (darwin) only. CI additionally covers Python 3.13 on `ubuntu-latest`, which this run did not exercise.
 
-## 7. Upgrade plan
+## 7. Upgrade steps, as carried out
 
-1. **Branch.** `git switch -c chore/textual-8.2.8` (repo default branch is `main`).
-2. **Re-resolve only Textual.** `uv lock --upgrade-package textual`. Do **not** edit `pyproject.toml` — `>=8.2,<9` already admits 8.2.8. Do **not** run a bare `uv lock --upgrade`, which would sweep all 58 packages and turn a one-line diff into an unreviewable one.
-3. **Sanity-check the diff.** `git diff uv.lock` should show the `textual` version/sdist/wheel hashes and nothing else. If any other package moved, back out and redo step 2.
-4. **Sync and verify.** `just install && just test && just lint && just typecheck`. Expect 57 passed / 5 snapshots passed with **zero** snapshot updates. If a snapshot fails, stop — that contradicts both the changelog and the trial run, and means something else changed.
-5. **Changelog.** Per `CLAUDE.md`, this is arguably not user-facing (a dependency bump with no behaviour change). It does deliver two upstream fixes users can feel — Kitty key parsing and the screen-padding click crash — so a single line under `## [Unreleased]` → `Fixed` is defensible. Judgment call, not a rule.
-6. **No version bump.** `pyproject.toml [project].version` stays at `1.0.0`; no re-lock dance beyond step 2.
-7. **PR and merge.** CI runs `ruff check`, `ty check`, `pytest` on 3.12 and 3.13 — that is the 3.13 coverage the local trial run lacked.
+All seven steps are done. Recorded here as the executed sequence, not as work to repeat.
+
+1. **Branch.** `chore/textual-8.2.8`, cut from `main`.
+2. **Re-resolved only Textual.** `uv lock --upgrade-package textual`. `pyproject.toml` was left alone — `>=8.2,<9` already admits 8.2.8. A bare `uv lock --upgrade` was avoided; it would have swept all 58 packages and turned a one-line diff into an unreviewable one.
+3. **Sanity-checked the diff.** `git diff uv.lock` showed the `textual` version/sdist/wheel hashes and nothing else.
+4. **Synced and verified.** `just install && just test && just lint && just typecheck` — 57 passed / 5 snapshots passed, zero snapshot updates.
+5. **Changelog.** Judged user-facing on the strength of the two upstream fixes users can feel — Kitty key parsing and the screen-padding click crash. Both are recorded under `## [Unreleased]` → `Fixed` in `CHANGELOG.md`.
+6. **No version bump.** `pyproject.toml [project].version` stayed at `1.0.0`.
+7. **PR and merge.** Merged as PR #15, with `ruff check`, `ty check`, and `pytest` green on 3.12 and 3.13 — the 3.13 coverage the local trial run lacked.
 
 ### Risks
 
